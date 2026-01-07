@@ -1,17 +1,14 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" class="dark">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>Nasoro AI</title>
+  <title>Nasoro</title>
   
   <script src="https://cdn.tailwindcss.com"></script>
-  
+  <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.7.0/styles/github-dark.min.css">
   <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.7.0/highlight.min.js"></script>
-  
-  <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
-
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 
   <script>
@@ -20,15 +17,12 @@
       theme: {
         extend: {
           colors: {
-            gh: {
-              bg: '#0d1117',
-              sidebar: '#161b22',
-              border: '#30363d',
-              input: '#0d1117',
-              primary: '#238636',
-              primaryHover: '#2ea043',
-              text: '#c9d1d9',
-              muted: '#8b949e'
+            nasoro: {
+              black: '#050505',
+              card: '#111111',
+              accent: '#ffffff',
+              border: '#222222',
+              muted: '#666666'
             }
           }
         }
@@ -37,261 +31,227 @@
   </script>
 
   <style>
-    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif; }
+    body { background-color: #050505; color: #ffffff; -webkit-font-smoothing: antialiased; }
+    .glass-sidebar { background: rgba(10, 10, 10, 0.8); backdrop-filter: blur(12px); }
+    
+    /* Code block styling */
+    pre { background: #1a1a1a !important; border: 1px solid #333; border-radius: 8px; padding: 1rem; margin: 1rem 0; overflow-x: auto; }
+    code { font-family: 'JetBrains Mono', monospace; font-size: 0.9rem; }
     
     /* Custom Scrollbar */
-    ::-webkit-scrollbar { width: 8px; }
-    ::-webkit-scrollbar-track { background: #0d1117; }
-    ::-webkit-scrollbar-thumb { background: #30363d; border-radius: 4px; }
-    ::-webkit-scrollbar-thumb:hover { background: #8b949e; }
+    ::-webkit-scrollbar { width: 4px; }
+    ::-webkit-scrollbar-thumb { background: #333; border-radius: 10px; }
 
-    /* Typing Animation */
-    .dot-flashing {
-      position: relative;
-      width: 6px; height: 6px;
-      border-radius: 5px;
-      background-color: #8b949e;
-      color: #8b949e;
-      animation: dot-flashing 1s infinite linear alternate;
-      animation-delay: 0.5s;
-    }
-    .dot-flashing::before, .dot-flashing::after {
-      content: ""; display: inline-block; position: absolute; top: 0;
-      width: 6px; height: 6px; border-radius: 5px; background-color: #8b949e; color: #8b949e;
-      animation: dot-flashing 1s infinite alternate;
-    }
-    .dot-flashing::before { left: -10px; animation-delay: 0s; }
-    .dot-flashing::after { left: 10px; animation-delay: 1s; }
-    @keyframes dot-flashing { 0% { background-color: #8b949e; } 50%, 100% { background-color: #2b3137; } }
+    /* Hide scrollbar for sidebar */
+    .no-scrollbar::-webkit-scrollbar { display: none; }
 
-    /* Code Block Copy Button Styles */
-    .code-wrapper { position: relative; margin-top: 10px; }
-    .copy-btn {
-      position: absolute; top: 5px; right: 5px;
-      background: #30363d; color: #c9d1d9;
-      border: 1px solid #6e7681; border-radius: 6px;
-      padding: 4px 8px; font-size: 12px; cursor: pointer;
-      opacity: 0; transition: opacity 0.2s;
-    }
-    .code-wrapper:hover .copy-btn { opacity: 1; }
+    /* Image Preview Animation */
+    .img-preview-container { transition: all 0.3s ease; }
+    
+    /* Message Fade-in */
+    .message-fade { animation: fadeIn 0.4s ease-out forwards; }
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
   </style>
 </head>
-<body class="bg-gh-bg text-gh-text h-screen flex overflow-hidden">
+<body class="h-screen flex overflow-hidden">
 
-  <aside class="hidden md:flex flex-col w-64 bg-gh-sidebar border-r border-gh-border p-4">
-    <div class="flex items-center gap-3 mb-6">
-      <i class="fa-brands fa-github text-3xl text-white"></i>
-      <h1 class="font-bold text-xl tracking-tight text-white">NasoroAI</h1>
-    </div>
-    
-    <div class="flex-1 overflow-y-auto">
-      <div class="text-xs font-semibold text-gh-muted uppercase tracking-wider mb-2">Capabilities</div>
-      <ul class="space-y-2 text-sm">
-        <li class="p-2 rounded bg-gh-border/50 text-white cursor-pointer"><i class="fa-solid fa-code mr-2"></i> Code Review</li>
-        <li class="p-2 rounded hover:bg-gh-border/30 text-gh-muted cursor-pointer transition"><i class="fa-solid fa-bug mr-2"></i> Debugging</li>
-        <li class="p-2 rounded hover:bg-gh-border/30 text-gh-muted cursor-pointer transition"><i class="fa-solid fa-book mr-2"></i> Documentation</li>
-      </ul>
+  <aside class="hidden lg:flex flex-col w-72 glass-sidebar border-r border-nasoro-border p-6">
+    <div class="flex items-center gap-3 mb-10">
+      <div class="w-10 h-10 bg-white rounded-xl flex items-center justify-center">
+        <span class="text-black font-black text-xl italic">N</span>
+      </div>
+      <h1 class="text-2xl font-bold tracking-tighter">Nasoro</h1>
     </div>
 
-    <div class="mt-auto pt-4 border-t border-gh-border">
-      <div class="flex items-center gap-2 text-sm text-gh-muted">
-        <div class="w-2 h-2 rounded-full bg-green-500"></div>
-        System Operational
+    <button onclick="window.location.reload()" class="w-full py-3 px-4 rounded-xl border border-nasoro-border hover:bg-white hover:text-black transition-all flex items-center justify-center gap-2 mb-8 font-medium">
+      <i class="fa-solid fa-plus text-sm"></i> New Session
+    </button>
+
+    <nav class="flex-1 no-scrollbar overflow-y-auto space-y-1">
+      <p class="text-[10px] uppercase tracking-[0.2em] text-nasoro-muted font-bold mb-4">Recent Projects</p>
+      <div class="space-y-2">
+        <div class="p-3 rounded-lg hover:bg-nasoro-card cursor-pointer group flex items-center gap-3">
+          <i class="fa-regular fa-message text-nasoro-muted group-hover:text-white"></i>
+          <span class="text-sm text-nasoro-muted group-hover:text-white truncate">Initial Repo Setup</span>
+        </div>
+        </div>
+    </nav>
+
+    <div class="pt-6 border-t border-nasoro-border mt-auto">
+      <div class="flex items-center gap-3 p-2">
+        <div class="w-8 h-8 rounded-full bg-gradient-to-tr from-gray-700 to-gray-400"></div>
+        <div class="flex-1 min-w-0">
+          <p class="text-sm font-bold truncate">Developer</p>
+          <p class="text-xs text-nasoro-muted">Pro Plan</p>
+        </div>
+        <i class="fa-solid fa-gear text-nasoro-muted hover:text-white cursor-pointer"></i>
       </div>
     </div>
   </aside>
 
-  <main class="flex-1 flex flex-col h-full relative">
+  <main class="flex-1 flex flex-col relative bg-nasoro-black">
     
-    <header class="md:hidden flex items-center justify-between p-4 bg-gh-sidebar border-b border-gh-border">
-      <div class="flex items-center gap-2">
-        <i class="fa-brands fa-github text-xl"></i>
-        <span class="font-bold">NasoroAI</span>
-      </div>
-      <button class="text-gh-muted"><i class="fa-solid fa-bars"></i></button>
+    <header class="lg:hidden flex items-center justify-between p-4 border-b border-nasoro-border">
+      <span class="font-black text-xl italic tracking-tighter">NASORO</span>
+      <button class="w-10 h-10 flex items-center justify-center rounded-full border border-nasoro-border">
+        <i class="fa-solid fa-bars"></i>
+      </button>
     </header>
 
-    <div id="chat-container" class="flex-1 overflow-y-auto p-4 md:p-8 space-y-6 scroll-smooth pb-32">
-      <div class="flex gap-4 max-w-3xl mx-auto">
-        <div class="w-8 h-8 rounded-full bg-black border border-gh-border flex items-center justify-center flex-shrink-0">
-          <i class="fa-brands fa-github text-white text-sm"></i>
-        </div>
-        <div class="flex-1 space-y-2">
-          <div class="flex items-center gap-2">
-            <span class="font-bold text-sm text-white">NasoroAI</span>
-            <span class="text-xs text-gh-muted">Just now</span>
-          </div>
-          <div class="text-gh-text leading-relaxed">
-            Hello! I am your GitHub AI Assistant. I can help you analyze repositories, write code, or explain complex pull requests. How can I help you today?
-          </div>
-        </div>
+    <div id="chat-container" class="flex-1 overflow-y-auto px-4 md:px-0 pt-10 pb-40 space-y-8">
+      <div class="max-w-2xl mx-auto text-center space-y-4 mb-20">
+        <h2 class="text-4xl md:text-5xl font-bold tracking-tighter">How can Nasoro help?</h2>
+        <p class="text-nasoro-muted">Upload code, images, or just type to begin building.</p>
       </div>
-    </div>
+      </div>
 
-    <div class="absolute bottom-0 left-0 w-full bg-gradient-to-t from-gh-bg via-gh-bg to-transparent pb-6 pt-10 px-4">
-      <div class="max-w-3xl mx-auto relative bg-gh-sidebar border border-gh-border rounded-xl shadow-2xl">
-        <textarea 
-          id="user-input" 
-          rows="1"
-          placeholder="Ask NasoroAI anything..." 
-          class="w-full bg-transparent text-white p-4 pr-12 rounded-xl focus:outline-none resize-none overflow-hidden max-h-48"
-          style="min-height: 56px;"
-        ></textarea>
+    <div class="absolute bottom-0 left-0 w-full p-4 md:pb-10">
+      <div class="max-w-3xl mx-auto">
         
-        <button id="send-btn" class="absolute right-3 bottom-3 p-2 bg-gh-primary hover:bg-gh-primaryHover text-white rounded-lg transition disabled:opacity-50 disabled:cursor-not-allowed">
-          <i class="fa-solid fa-paper-plane text-sm"></i>
-        </button>
-      </div>
-      <div class="text-center mt-2">
-        <p class="text-xs text-gh-muted">NasoroAI can make mistakes. Consider checking important information.</p>
+        <div id="image-preview-bar" class="hidden flex gap-2 p-3 bg-nasoro-card border border-nasoro-border border-b-0 rounded-t-2xl">
+          </div>
+
+        <div class="relative bg-nasoro-card border border-nasoro-border rounded-2xl shadow-2xl focus-within:border-nasoro-muted transition-colors">
+          
+          <div class="flex items-end p-2 md:p-3 gap-2">
+            <label class="w-10 h-10 flex items-center justify-center rounded-xl cursor-pointer hover:bg-nasoro-border transition-all">
+              <i class="fa-solid fa-plus text-nasoro-muted"></i>
+              <input type="file" id="image-input" class="hidden" accept="image/*" multiple>
+            </label>
+
+            <textarea 
+              id="user-input" 
+              rows="1" 
+              placeholder="Talk to Nasoro..."
+              class="flex-1 bg-transparent border-none focus:ring-0 resize-none py-2 text-white placeholder-nasoro-muted text-base md:text-lg max-h-60"
+            ></textarea>
+
+            <button id="send-btn" class="w-10 h-10 flex items-center justify-center rounded-xl bg-white text-black hover:scale-95 transition-transform disabled:opacity-50 disabled:scale-100">
+              <i class="fa-solid fa-arrow-up"></i>
+            </button>
+          </div>
+        </div>
+        
+        <p class="text-[10px] text-center mt-3 text-nasoro-muted uppercase tracking-widest font-medium">Powered by Nasoro Intelligence</p>
       </div>
     </div>
-
   </main>
 
   <script>
     const chatContainer = document.getElementById('chat-container');
     const userInput = document.getElementById('user-input');
     const sendBtn = document.getElementById('send-btn');
+    const imageInput = document.getElementById('image-input');
+    const previewBar = document.getElementById('image-preview-bar');
+    
     const BACKEND_URL = "https://nasoroai-production.up.railway.app/ai";
 
-    // Configure Marked to use Highlight.js
-    marked.setOptions({
-      highlight: function(code, lang) {
-        const language = highlight.getLanguage(lang) ? lang : 'plaintext';
-        return highlight.highlight(code, { language }).value;
-      },
-      langPrefix: 'hljs language-'
+    let selectedImages = [];
+
+    // Handle Image Selection
+    imageInput.addEventListener('change', (e) => {
+      const files = Array.from(e.target.files);
+      files.forEach(file => {
+        const reader = new FileReader();
+        reader.onload = (event) => {
+          selectedImages.push(event.target.result);
+          renderPreviews();
+        };
+        reader.readAsDataURL(file);
+      });
     });
 
-    // Auto-resize textarea
-    userInput.addEventListener('input', function() {
-      this.style.height = 'auto';
-      this.style.height = (this.scrollHeight) + 'px';
-      if(this.value === '') this.style.height = '56px';
-    });
-
-    function createMessageHTML(content, role) {
-      const isAi = role === 'ai';
-      const avatarIcon = isAi ? 'fa-github' : 'fa-user';
-      const name = isAi ? 'NasoroAI' : 'You';
-      const bgColor = isAi ? 'bg-black' : 'bg-blue-600';
-      
-      // Parse Markdown if AI
-      let messageBody = isAi ? marked.parse(content) : content.replace(/\n/g, '<br>');
-
-      return `
-        <div class="flex gap-4 max-w-3xl mx-auto fade-in">
-          <div class="w-8 h-8 rounded-full ${bgColor} border border-gh-border flex items-center justify-center flex-shrink-0 mt-1">
-            <i class="fa-brands ${avatarIcon} text-white text-sm"></i>
+    function renderPreviews() {
+      if (selectedImages.length > 0) {
+        previewBar.classList.remove('hidden');
+        previewBar.innerHTML = selectedImages.map((src, index) => `
+          <div class="relative w-16 h-16 rounded-lg overflow-hidden border border-nasoro-border group">
+            <img src="${src}" class="w-full h-full object-cover">
+            <button onclick="removeImage(${index})" class="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity">
+              <i class="fa-solid fa-xmark text-white"></i>
+            </button>
           </div>
-          <div class="flex-1 space-y-1 min-w-0">
-            <div class="flex items-center gap-2">
-              <span class="font-bold text-sm text-white">${name}</span>
-            </div>
-            <div class="text-gh-text leading-relaxed prose prose-invert max-w-none break-words">
-              ${messageBody}
-            </div>
-          </div>
-        </div>
-      `;
+        `).join('');
+      } else {
+        previewBar.classList.add('hidden');
+      }
     }
 
-    function addLoader() {
-      const id = 'loader-' + Date.now();
+    window.removeImage = (index) => {
+      selectedImages.splice(index, 1);
+      renderPreviews();
+    };
+
+    // Auto-expand textarea
+    userInput.addEventListener('input', function() {
+      this.style.height = 'auto';
+      this.style.height = this.scrollHeight + 'px';
+    });
+
+    function addMessage(content, role) {
+      const isNasoro = role === 'nasoro';
       const html = `
-        <div id="${id}" class="flex gap-4 max-w-3xl mx-auto">
-          <div class="w-8 h-8 rounded-full bg-black border border-gh-border flex items-center justify-center flex-shrink-0 mt-1">
-            <i class="fa-brands fa-github text-white text-sm"></i>
+        <div class="max-w-3xl mx-auto flex gap-4 md:gap-6 message-fade">
+          <div class="w-8 h-8 rounded-lg flex-shrink-0 flex items-center justify-center ${isNasoro ? 'bg-white text-black' : 'bg-nasoro-card border border-nasoro-border'}">
+            <i class="fa-solid ${isNasoro ? 'fa-bolt-lightning text-xs' : 'fa-user text-xs'}"></i>
           </div>
-          <div class="flex-1 py-3">
-             <div class="dot-flashing"></div>
+          <div class="flex-1 space-y-2 overflow-hidden">
+            <p class="text-xs font-bold text-nasoro-muted uppercase tracking-widest">${isNasoro ? 'Nasoro' : 'You'}</p>
+            <div class="text-white leading-relaxed text-base prose prose-invert max-w-none">
+              ${isNasoro ? marked.parse(content) : content}
+            </div>
           </div>
         </div>
       `;
       chatContainer.insertAdjacentHTML('beforeend', html);
-      scrollToBottom();
-      return id;
+      document.querySelectorAll('pre code').forEach(el => hljs.highlightElement(el));
+      chatContainer.scrollTo({ top: chatContainer.scrollHeight, behavior: 'smooth' });
     }
 
-    function scrollToBottom() {
-      chatContainer.scrollTop = chatContainer.scrollHeight;
-    }
-
-    // Add Copy Button to Code Blocks
-    function attachCopyButtons() {
-      document.querySelectorAll('pre code').forEach((block) => {
-        if (block.parentNode.classList.contains('code-wrapper')) return; // Already attached
-
-        const pre = block.parentNode;
-        const wrapper = document.createElement('div');
-        wrapper.className = 'code-wrapper';
-        pre.parentNode.insertBefore(wrapper, pre);
-        wrapper.appendChild(pre);
-
-        const button = document.createElement('button');
-        button.className = 'copy-btn';
-        button.innerHTML = '<i class="fa-regular fa-copy"></i> Copy';
-        
-        button.addEventListener('click', () => {
-          navigator.clipboard.writeText(block.innerText).then(() => {
-            button.innerHTML = '<i class="fa-solid fa-check"></i> Copied!';
-            setTimeout(() => button.innerHTML = '<i class="fa-regular fa-copy"></i> Copy', 2000);
-          });
-        });
-
-        wrapper.appendChild(button);
-      });
-    }
-
-    async function sendMessage() {
+    async function handleSend() {
       const text = userInput.value.trim();
-      if (!text) return;
+      if (!text && selectedImages.length === 0) return;
 
-      // 1. Add User Message
-      chatContainer.insertAdjacentHTML('beforeend', createMessageHTML(text, 'user'));
+      // Add user message to UI
+      addMessage(text, 'user');
+      
+      // Cleanup UI
       userInput.value = '';
-      userInput.style.height = '56px'; // Reset height
+      userInput.style.height = 'auto';
+      const imagesToPulse = [...selectedImages];
+      selectedImages = [];
+      renderPreviews();
       sendBtn.disabled = true;
-      scrollToBottom();
-
-      // 2. Add Loader
-      const loaderId = addLoader();
 
       try {
         const response = await fetch(BACKEND_URL, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ message: text, provider: "openai" })
+          body: JSON.stringify({ 
+            message: text, 
+            images: imagesToPulse, // Optional: if your backend handles images
+            provider: "openai" 
+          })
         });
 
         const data = await response.json();
-        
-        // 3. Remove Loader & Add AI Response
-        document.getElementById(loaderId).remove();
-        chatContainer.insertAdjacentHTML('beforeend', createMessageHTML(data.reply || "No response received.", 'ai'));
-        
-        // 4. Highlight Code & Attach Copy Buttons
-        attachCopyButtons();
-        
+        addMessage(data.reply || "Nasoro is currently offline. Check Railway status.", 'nasoro');
       } catch (err) {
-        document.getElementById(loaderId).remove();
-        chatContainer.insertAdjacentHTML('beforeend', createMessageHTML("Error: Could not reach backend.", 'ai'));
+        addMessage("Connection error. Ensure your backend is running.", 'nasoro');
       } finally {
         sendBtn.disabled = false;
-        scrollToBottom();
-        userInput.focus();
       }
     }
 
-    sendBtn.addEventListener('click', sendMessage);
+    sendBtn.addEventListener('click', handleSend);
     userInput.addEventListener('keydown', (e) => {
       if (e.key === 'Enter' && !e.shiftKey) {
         e.preventDefault();
-        sendMessage();
+        handleSend();
       }
     });
   </script>
 </body>
-  </html>
-  
+</html>
+                                                              </html>
+            
