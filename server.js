@@ -38,7 +38,7 @@ app.post("/ai", async (req, res) => {
     }
 
     const r = await openai.chat.completions.create({
-      model: "gpt-5.2-chat",
+      model: "dall-e-3",
       messages: [
         {
           role: "system",
