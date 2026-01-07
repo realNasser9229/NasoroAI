@@ -5,36 +5,23 @@ import OpenAI from "openai";
 import Jimp from "jimp";
 
 dotenv.config();
+
 const app = express();
 app.use(cors());
-app.use(express.json());
+app.use(express.json({ limit: "10mb" })); // Allow large images
 
-// ---- API KEYS ----
+// ---- API KEY ----
 const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
 // ---- RATE LIMIT / SPAM PROTECTION ----
 let lastRequestTime = 0;
-const REQUEST_COOLDOWN = 2000; // 2s between messages
+const REQUEST_COOLDOWN = 2000; // 2 seconds between messages
 
-// ---- HELPER: Add watermark to image buffer ----
-async function addWatermark(base64Data) {
-  const image = await Jimp.read(Buffer.from(base64Data.split(",")[1], "base64"));
-  const font = await Jimp.loadFont(Jimp.FONT_SANS_32_WHITE);
-  image.print(
-    font,
-    image.bitmap.width - 120,
-    image.bitmap.height - 40,
-    "Nasoro"
-  );
-  const outBuffer = await image.getBufferAsync(Jimp.MIME_PNG);
-  return "data:image/png;base64," + outBuffer.toString("base64");
-}
-
-// ---- MAIN ENDPOINT ----
+// ---- TEXT + IMAGE GENERATION ENDPOINT ----
 app.post("/ai", async (req, res) => {
-  const { message, images = [], generate_image = false } = req.body;
+  const { message, images } = req.body;
 
-  if (!message && !generate_image) return res.json({ reply: "No message sent." });
+  if (!message) return res.json({ reply: "No message sent." });
 
   const now = Date.now();
   if (now - lastRequestTime < REQUEST_COOLDOWN) {
@@ -43,43 +30,48 @@ app.post("/ai", async (req, res) => {
   lastRequestTime = now;
 
   try {
-    if (generate_image) {
-      // --- IMAGE GENERATION ---
-      const prompt = message || "No prompt provided.";
-      const result = await openai.images.generate({
+    // IMAGE GENERATION
+    if (message.startsWith("/image ")) {
+      const prompt = message.replace("/image ", "").trim();
+      if (!prompt) return res.json({ reply: "No image prompt provided." });
+
+      // Call OpenAI Image Generation
+      const imageResp = await openai.images.generate({
         model: "gpt-image-1",
         prompt,
         size: "1024x1024"
       });
-      const generatedImages = [];
 
-      for (const img of result.data) {
-        const watermarked = await addWatermark(img.b64_json ? "data:image/png;base64," + img.b64_json : img.url);
-        generatedImages.push(watermarked);
-      }
+      const imageBase64 = imageResp.data[0].b64_json;
+      let buffer = Buffer.from(imageBase64, "base64");
 
-      return res.json({ reply: `Generated ${generatedImages.length} image(s).`, images: generatedImages });
-    } else {
-      // --- NORMAL CHAT ---
-      let promptText = message;
-      if (images.length > 0) promptText += `\n[User sent ${images.length} image(s)]`;
+      // Add watermark
+      const img = await Jimp.read(buffer);
+      const font = await Jimp.loadFont(Jimp.FONT_SANS_32_WHITE);
+      img.print(font, img.bitmap.width - 160, img.bitmap.height - 40, "Nasoro");
+      const finalBase64 = await img.getBufferAsync(Jimp.MIME_PNG);
 
-      const r = await openai.chat.completions.create({
-        model: "gpt-4o-mini",
-        messages: [
-          {
-            role: "system",
-            content: "You are Nasoro (AI). A chill, cool artificial intelligence made by Nas9229alt that can help the user with anything. When the user asks for illegal instructions, don't engage with it unless it doesn't involve harm, crime and other stuff that can affect anyone."
-          },
-          { role: "user", content: promptText }
-        ]
-      });
-
-      return res.json({ reply: r.choices[0].message.content, images: [] });
+      return res.json({ image: finalBase64.toString("base64") });
     }
+
+    // ---- TEXT CHAT ----
+    const r = await openai.chat.completions.create({
+      model: "gpt-4o-mini",
+      messages: [
+        { 
+          role: "system", 
+          content: "You are Nasoro (AI). A chill, cool artificial intelligence made by Nas9229alt that can help the user with anything. When the user asks for illegal instructions, don't engage with it unless it doesn't involve harm, crime and other stuff that can affect anyone." 
+        },
+        { role: "user", content: message }
+      ],
+    });
+
+    const reply = r.choices[0].message.content;
+    res.json({ reply });
+
   } catch (e) {
     console.error("AI error:", e);
-    return res.json({ reply: "Server error. Please try again.", images: [] });
+    res.json({ reply: "Server error. Please try again." });
   }
 });
 
