@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
   <title>Nasoro AI</title>
-  
+
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.7.0/styles/tokyo-night-dark.min.css">
@@ -25,9 +25,8 @@
 
   <style>
     @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&display=swap');
-    
+
     * { -webkit-tap-highlight-color: transparent; }
-    
     body { 
       background-color: #050505; 
       color: #ffffff; 
@@ -37,7 +36,6 @@
       width: 100vw;
     }
 
-    /* Ultra-Sexy Glass */
     .glass-nav {
       background: rgba(5, 5, 5, 0.8);
       backdrop-filter: blur(20px);
@@ -52,21 +50,13 @@
       box-shadow: 20px 0 50px rgba(0,0,0,0.5);
     }
 
-    /* Sidebar Logic */
     #sidebar { transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1); z-index: 1000; }
     .sidebar-active { transform: translateX(0) !important; }
-    
-    #overlay { 
-      transition: opacity 0.3s ease; 
-      z-index: 999;
-      display: none;
-    }
+
+    #overlay { transition: opacity 0.3s ease; z-index: 999; display: none; }
     .overlay-visible { display: block !important; opacity: 1 !important; }
 
-    /* Custom Message Glow */
-    .nasoro-glow {
-      position: relative;
-    }
+    .nasoro-glow { position: relative; }
     .nasoro-glow::before {
       content: '';
       position: absolute;
@@ -77,7 +67,6 @@
       background: linear-gradient(to bottom, transparent, #fff, transparent);
     }
 
-    /* Code Blocks */
     pre { background: #000 !important; border: 1px solid #1f1f1f; border-radius: 12px; padding: 1rem; margin: 1rem 0; overflow-x: auto; }
     
     @keyframes slideUp {
@@ -104,13 +93,13 @@
     </button>
 
     <div class="flex-1 space-y-2 overflow-y-auto">
-        <p class="text-[10px] uppercase tracking-[0.3em] text-zinc-600 font-bold px-2 mb-4">Navigation</p>
-        <div class="flex items-center gap-3 p-3.5 rounded-2xl hover:bg-white/5 cursor-pointer text-sm text-zinc-400 hover:text-white transition">
-            <i class="fa-solid fa-layer-group"></i> Models
-        </div>
-        <div class="flex items-center gap-3 p-3.5 rounded-2xl hover:bg-white/5 cursor-pointer text-sm text-zinc-400 hover:text-white transition">
-            <i class="fa-solid fa-gear"></i> Settings
-        </div>
+      <p class="text-[10px] uppercase tracking-[0.3em] text-zinc-600 font-bold px-2 mb-4">Navigation</p>
+      <div class="flex items-center gap-3 p-3.5 rounded-2xl hover:bg-white/5 cursor-pointer text-sm text-zinc-400 hover:text-white transition">
+          <i class="fa-solid fa-layer-group"></i> Models
+      </div>
+      <div class="flex items-center gap-3 p-3.5 rounded-2xl hover:bg-white/5 cursor-pointer text-sm text-zinc-400 hover:text-white transition">
+          <i class="fa-solid fa-gear"></i> Settings
+      </div>
     </div>
 
     <div class="mt-auto pt-6 border-t border-white/5">
@@ -148,6 +137,7 @@
 
         <div class="bg-nasoro-card/80 backdrop-blur-xl border border-white/10 p-3 rounded-[30px] flex items-end gap-2 focus-within:border-white/30 transition-all duration-300">
           
+          <!-- Upload button -->
           <label class="w-12 h-12 flex items-center justify-center rounded-2xl cursor-pointer hover:bg-white/5 transition active:scale-90">
             <i class="fa-solid fa-plus text-zinc-500"></i>
             <input type="file" id="img-input" class="hidden" accept="image/*" multiple>
@@ -184,18 +174,17 @@
 
     let attachments = [];
 
-    // SIDEBAR FUNCTIONS
+    // SIDEBAR
     function openSidebar() {
       sidebar.classList.add('sidebar-active');
       overlay.classList.add('overlay-visible');
     }
-
     function closeSidebar() {
       sidebar.classList.remove('sidebar-active');
       overlay.classList.remove('overlay-visible');
     }
 
-    // IMAGE SYSTEM
+    // IMAGE UPLOAD
     imgInput.addEventListener('change', (e) => {
       const files = Array.from(e.target.files);
       files.forEach(file => {
@@ -223,7 +212,6 @@
         imgTray.classList.add('hidden');
       }
     }
-
     window.removeImg = (i) => {
       attachments.splice(i, 1);
       renderTray();
@@ -244,7 +232,7 @@
             <span class="text-xs font-bold italic">${isNas ? 'N' : 'U'}</span>
           </div>
           <div class="flex-1 min-w-0">
-            <p class="text-[9px] font-bold text-zinc-600 uppercase tracking-widest mb-2">${isNas ? 'Nasoro AI' : 'Nas9229alt'}</p>
+            <p class="text-[9px] font-bold text-zinc-600 uppercase tracking-widest mb-2">${isNas ? 'Nasoro AI' : 'You'}</p>
             <div class="${isNas ? 'nasoro-glow' : ''} text-[17px] leading-relaxed text-zinc-100 font-light prose prose-invert max-w-none">
               ${isNas ? marked.parse(content) : content.replace(/\n/g, '<br>')}
             </div>
@@ -263,16 +251,18 @@
       postMessage(msg, 'user');
       chatField.value = '';
       chatField.style.height = 'auto';
+
       const snapImg = [...attachments];
       attachments = [];
       renderTray();
+
       sendAction.disabled = true;
 
       try {
         const res = await fetch("https://nasoroai-production.up.railway.app/ai", {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ message: msg, images: snapImg, provider: "openai" })
+          body: JSON.stringify({ message: msg, images: snapImg })
         });
         const data = await res.json();
         postMessage(data.reply || "Thinking...", 'nasoro');
@@ -284,13 +274,14 @@
     }
 
     sendAction.addEventListener('click', handleSend);
+
+    // Enter = newline
     chatField.addEventListener('keydown', e => { 
-        if(e.key === 'Enter' && !e.shiftKey) { 
-            e.preventDefault(); 
-            handleSend(); 
-        } 
+      if(e.key === 'Enter' && !e.shiftKey) { 
+        e.preventDefault(); 
+        chatField.value += "\n"; 
+      } 
     });
   </script>
 </body>
-        </html>
-              
+                                                                                           </html>
