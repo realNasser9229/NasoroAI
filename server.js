@@ -2,26 +2,39 @@ import express from "express";
 import cors from "cors";
 import dotenv from "dotenv";
 import OpenAI from "openai";
-import Jimp from "jimp"; // for watermarking images
-import fetch from "node-fetch";
+import Jimp from "jimp";
 
 dotenv.config();
-
 const app = express();
 app.use(cors());
-app.use(express.json({ limit: "10mb" })); // allow large base64 images
+app.use(express.json());
 
-// ---- API KEY ----
+// ---- API KEYS ----
 const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
 // ---- RATE LIMIT / SPAM PROTECTION ----
 let lastRequestTime = 0;
-const REQUEST_COOLDOWN = 2000; // 2s
+const REQUEST_COOLDOWN = 2000; // 2s between messages
 
-// ---- AI CHAT ENDPOINT ----
+// ---- HELPER: Add watermark to image buffer ----
+async function addWatermark(base64Data) {
+  const image = await Jimp.read(Buffer.from(base64Data.split(",")[1], "base64"));
+  const font = await Jimp.loadFont(Jimp.FONT_SANS_32_WHITE);
+  image.print(
+    font,
+    image.bitmap.width - 120,
+    image.bitmap.height - 40,
+    "Nasoro"
+  );
+  const outBuffer = await image.getBufferAsync(Jimp.MIME_PNG);
+  return "data:image/png;base64," + outBuffer.toString("base64");
+}
+
+// ---- MAIN ENDPOINT ----
 app.post("/ai", async (req, res) => {
-  const { message, images, generate_image } = req.body;
-  if (!message && !generate_image) return res.json({ reply: "No input sent." });
+  const { message, images = [], generate_image = false } = req.body;
+
+  if (!message && !generate_image) return res.json({ reply: "No message sent." });
 
   const now = Date.now();
   if (now - lastRequestTime < REQUEST_COOLDOWN) {
@@ -30,60 +43,43 @@ app.post("/ai", async (req, res) => {
   lastRequestTime = now;
 
   try {
-    let reply = "";
-    let returnedImages = [];
-
-    // ---- IMAGE GENERATION ----
     if (generate_image) {
-      const prompt = message || "An abstract image";
-      const g = await openai.images.generate({
+      // --- IMAGE GENERATION ---
+      const prompt = message || "No prompt provided.";
+      const result = await openai.images.generate({
         model: "gpt-image-1",
         prompt,
-        size: "1024x1024",
+        size: "1024x1024"
       });
+      const generatedImages = [];
 
-      for (let imgData of g.data) {
-        const base64 = imgData.b64_json;
-        const buffer = Buffer.from(base64, "base64");
-
-        // Watermark with "Nasoro"
-        const image = await Jimp.read(buffer);
-        const font = await Jimp.loadFont(Jimp.FONT_SANS_32_WHITE);
-        image.print(
-          font,
-          image.bitmap.width - 150,
-          image.bitmap.height - 40,
-          "Nasoro"
-        );
-        const watermarkedBase64 = await image.getBufferAsync(Jimp.MIME_PNG);
-        returnedImages.push("data:image/png;base64," + watermarkedBase64.toString("base64"));
+      for (const img of result.data) {
+        const watermarked = await addWatermark(img.b64_json ? "data:image/png;base64," + img.b64_json : img.url);
+        generatedImages.push(watermarked);
       }
-      reply = "Generated image(s) below:";
+
+      return res.json({ reply: `Generated ${generatedImages.length} image(s).`, images: generatedImages });
     } else {
-      // ---- CHAT WITH NASORO ----
+      // --- NORMAL CHAT ---
       let promptText = message;
-      if (images && images.length > 0) {
-        promptText += `\n[User sent ${images.length} image(s)]`;
-      }
+      if (images.length > 0) promptText += `\n[User sent ${images.length} image(s)]`;
 
       const r = await openai.chat.completions.create({
         model: "gpt-4o-mini",
         messages: [
           {
             role: "system",
-            content: "You are Nasoro (AI). A chill, cool artificial intelligence made by Nas9229alt that can help the user with anything. When the user asks for illegal instructions, don't engage with it unless it doesn't involve harm, crime and other stuff that can affect anyone.",
+            content: "You are Nasoro (AI). A chill, cool artificial intelligence made by Nas9229alt that can help the user with anything. When the user asks for illegal instructions, don't engage with it unless it doesn't involve harm, crime and other stuff that can affect anyone."
           },
-          { role: "user", content: promptText },
-        ],
+          { role: "user", content: promptText }
+        ]
       });
 
-      reply = r.choices[0].message.content;
+      return res.json({ reply: r.choices[0].message.content, images: [] });
     }
-
-    res.json({ reply, images: returnedImages || images || [] });
   } catch (e) {
     console.error("AI error:", e);
-    res.json({ reply: "Server error. Please try again." });
+    return res.json({ reply: "Server error. Please try again.", images: [] });
   }
 });
 
