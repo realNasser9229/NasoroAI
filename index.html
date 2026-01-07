@@ -2,55 +2,58 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Nasoro AI</title>
-
 <script src="https://cdn.tailwindcss.com"></script>
 <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.7.0/styles/tokyo-night-dark.min.css">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.7.0/highlight.min.js"></script>
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 
+<script>
+tailwind.config = {
+  theme: {
+    extend: {
+      colors: { nasoro: { bg: '#050505', card: '#0f0f0f', accent: '#ffffff', border: '#1f1f1f' } }
+    }
+  }
+}
+</script>
+
 <style>
-body{margin:0;font-family:'Space Grotesk',sans-serif;background:#050505;color:#fff;overflow:hidden;height:100vh;width:100vw}
-.glass-nav{background:rgba(5,5,5,0.8);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);border-bottom:1px solid rgba(255,255,255,.05)}
-.sidebar-glass{background:rgba(10,10,10,.95);backdrop-filter:blur(30px);-webkit-backdrop-filter:blur(30px);box-shadow:20px 0 50px rgba(0,0,0,.5)}
-#sidebar{transition:transform .3s cubic-bezier(.4,0,.2,1);z-index:1000}
-.sidebar-active{transform:translateX(0)!important}
-#overlay{transition:opacity .3s ease;z-index:999;display:none}
-.overlay-visible{display:block!important;opacity:1!important}
-.nasoro-glow{position:relative}
-.nasoro-glow::before{content:'';position:absolute;left:-20px;top:0;bottom:0;width:2px;background:linear-gradient(to bottom,transparent,#fff,transparent)}
-pre{background:#000!important;border:1px solid #1f1f1f;border-radius:12px;padding:1rem;margin:1rem 0;overflow-x:auto}
-.msg-animate{animation:slideUp .3s ease-out forwards}
-@keyframes slideUp{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
+body { font-family: 'Space Grotesk', sans-serif; background:#050505;color:white; overflow:hidden; height:100vh; width:100vw; }
+#sidebar{transition:transform .3s;}
+.sidebar-active{transform:translateX(0)!important;}
+#overlay{transition:opacity .3s;display:none;}
+.overlay-visible{display:block!important;opacity:1!important;}
+.msg-animate{animation:slideUp .3s ease-out forwards;}
+@keyframes slideUp{from{opacity:0;transform:translateY(10px);}to{opacity:1;transform:translateY(0);}}
+.nasoro-glow{position:relative;}
+.nasoro-glow::before{content:'';position:absolute;left:-20px;top:0;bottom:0;width:2px;background:linear-gradient(to bottom,transparent,#fff,transparent);}
+pre{background:#000;border:1px solid #1f1f1f;border-radius:12px;padding:1rem;margin:1rem 0;overflow-x:auto;}
 </style>
 </head>
 <body class="flex">
 
 <div id="overlay" onclick="closeSidebar()" class="fixed inset-0 bg-black/80 opacity-0"></div>
 
-<aside id="sidebar" class="fixed inset-y-0 left-0 w-[280px] -translate-x-full md:relative md:translate-x-0 sidebar-glass flex flex-col p-6 border-r border-white/5">
+<!-- Sidebar -->
+<aside id="sidebar" class="fixed inset-y-0 left-0 w-[280px] -translate-x-full md:relative md:translate-x-0 bg-nasoro-card/95 flex flex-col p-6 border-r border-white/5">
   <div class="flex items-center gap-3 mb-10">
-    <div class="h-9 w-9 bg-white rounded-xl flex items-center justify-center shadow-[0_0_20px_rgba(255,255,255,0.2)]"><span class="text-black font-bold italic text-lg">N</span></div>
+    <div class="h-9 w-9 bg-white rounded-xl flex items-center justify-center shadow-[0_0_20px_rgba(255,255,255,0.2)]">
+      <span class="text-black font-bold italic text-lg">N</span>
+    </div>
     <span class="text-xl font-bold tracking-tighter">Nasoro AI</span>
   </div>
   <button onclick="location.reload()" class="w-full flex items-center justify-center gap-2 py-4 rounded-2xl bg-white text-black font-bold text-sm hover:scale-[1.02] transition active:scale-95 mb-8">
     <i class="fa-solid fa-plus"></i> New Chat
   </button>
-  <div class="flex-1 space-y-2 overflow-y-auto">
-    <p class="text-[10px] uppercase tracking-[0.3em] text-zinc-600 font-bold px-2 mb-4">Navigation</p>
-  </div>
-  <div class="mt-auto pt-6 border-t border-white/5 text-center text-[10px] text-zinc-500 font-bold tracking-[0.2em] uppercase">Nasoro AI • Made by Nas9229alt</div>
 </aside>
 
 <main class="flex-1 flex flex-col relative h-full min-w-0">
-<header class="flex items-center justify-between p-5 md:p-6 glass-nav sticky top-0 z-[100]">
-  <div class="flex items-center gap-3 md:hidden">
-    <div class="h-8 w-8 bg-white rounded-lg flex items-center justify-center"><span class="text-black font-bold italic text-sm">N</span></div>
-    <span class="font-bold tracking-tighter text-lg">Nasoro</span>
-  </div>
-  <button id="menu-toggle" onclick="openSidebar()" class="w-11 h-11 flex items-center justify-center rounded-xl border border-white/10 hover:bg-white hover:text-black transition-all duration-300">
+<header class="flex items-center justify-between p-5 md:p-6 bg-nasoro-card/80 sticky top-0 z-[100]">
+  <div class="font-bold text-lg">Nasoro</div>
+  <button onclick="openSidebar()" class="w-11 h-11 flex items-center justify-center rounded-xl border border-white/10 hover:bg-white hover:text-black transition-all duration-300">
     <i class="fa-solid fa-bars-staggered text-sm"></i>
   </button>
 </header>
@@ -62,9 +65,9 @@ pre{background:#000!important;border:1px solid #1f1f1f;border-radius:12px;paddin
   </div>
 </div>
 
-<div class="absolute bottom-0 left-0 w-full p-4 md:pb-10 bg-gradient-to-t from-[#050505] via-[#050505]/90 to-transparent">
+<div class="absolute bottom-0 left-0 w-full p-4 md:pb-10 bg-gradient-to-t from-nasoro-bg via-nasoro-bg/90 to-transparent">
   <div class="max-w-3xl mx-auto">
-    <div class="bg-[#0f0f0f]/80 backdrop-blur-xl border border-white/10 p-3 rounded-[30px] flex items-end gap-2 focus-within:border-white/30 transition-all duration-300">
+    <div class="bg-nasoro-card/80 backdrop-blur-xl border border-white/10 p-3 rounded-[30px] flex items-end gap-2 focus-within:border-white/30 transition-all duration-300">
       <label class="w-12 h-12 flex items-center justify-center rounded-2xl cursor-pointer hover:bg-white/5 transition active:scale-90">
         <i class="fa-solid fa-plus text-zinc-500"></i>
         <input type="file" id="img-input" class="hidden" accept="image/*" multiple>
@@ -74,8 +77,7 @@ pre{background:#000!important;border:1px solid #1f1f1f;border-radius:12px;paddin
         <i class="fa-solid fa-arrow-up"></i>
       </button>
     </div>
-    <div id="img-tray" class="flex gap-3 p-4 mt-2 hidden"></div>
-    <div class="mt-4 text-center"><span class="text-[10px] font-bold text-zinc-600 uppercase tracking-[0.4em]">Nasoro AI • Made by Nas9229alt</span></div>
+    <div id="img-tray" class="hidden flex gap-3 p-4 bg-nasoro-card/80 backdrop-blur-xl border border-white/5 border-b-0 rounded-t-[30px]"></div>
   </div>
 </div>
 </main>
@@ -89,15 +91,15 @@ const imgInput = document.getElementById('img-input');
 const imgTray = document.getElementById('img-tray');
 const sidebar = document.getElementById('sidebar');
 const overlay = document.getElementById('overlay');
-
 let attachments = [];
 
-function openSidebar(){sidebar.classList.add('sidebar-active');overlay.classList.add('overlay-visible')}
-function closeSidebar(){sidebar.classList.remove('sidebar-active');overlay.classList.remove('overlay-visible')}
+// SIDEBAR
+function openSidebar(){ sidebar.classList.add('sidebar-active'); overlay.classList.add('overlay-visible'); }
+function closeSidebar(){ sidebar.classList.remove('sidebar-active'); overlay.classList.remove('overlay-visible'); }
 
 // IMAGE UPLOAD
-imgInput.addEventListener('change', e=>{
-  const files=Array.from(e.target.files);
+imgInput.addEventListener('change',(e)=>{
+  const files = Array.from(e.target.files);
   files.forEach(file=>{
     const r=new FileReader();
     r.onload=ev=>{
@@ -110,51 +112,67 @@ imgInput.addEventListener('change', e=>{
 function renderTray(){
   if(attachments.length>0){
     imgTray.classList.remove('hidden');
-    imgTray.innerHTML=attachments.map((s,i)=>`<div class="relative w-16 h-16 rounded-2xl overflow-hidden border border-white/10"><img src="${s}" class="w-full h-full object-cover"><div onclick="removeImg(${i})" class="absolute inset-0 bg-black/60 flex items-center justify-center cursor-pointer opacity-0 hover:opacity-100 transition-opacity"><i class="fa-solid fa-trash text-white text-xs"></i></div></div>`).join('');
-  } else imgTray.classList.add('hidden');
+    imgTray.innerHTML = attachments.map((s,i)=>`
+      <div class="relative w-16 h-16 rounded-2xl overflow-hidden border border-white/10">
+        <img src="${s}" class="w-full h-full object-cover">
+        <div onclick="removeImg(${i})" class="absolute inset-0 bg-black/60 flex items-center justify-center cursor-pointer opacity-0 hover:opacity-100 transition-opacity">
+          <i class="fa-solid fa-trash text-white text-xs"></i>
+        </div>
+      </div>
+    `).join('');
+  }else imgTray.classList.add('hidden');
 }
-window.removeImg=i=>{attachments.splice(i,1);renderTray()};
+window.removeImg=(i)=>{ attachments.splice(i,1); renderTray(); }
 
-// CHAT
-chatField.addEventListener('input',function(){this.style.height='auto';this.style.height=this.scrollHeight+'px'});
-
-function postMessage(content, role, images=[]){
+// CHAT CORE
+chatField.addEventListener('input',function(){ this.style.height='auto'; this.style.height=this.scrollHeight+'px'; });
+function postMessage(content,role,imgs=[]){
   welcomeUi.classList.add('hidden');
   const isNas=role==='nasoro';
-  const html=`<div class="max-w-3xl mx-auto flex gap-5 mb-12 msg-animate px-4 md:px-0"><div class="w-10 h-10 rounded-2xl flex-shrink-0 flex items-center justify-center border ${isNas?'bg-white text-black':'border-white/10 text-white'}"><span class="text-xs font-bold italic">${isNas?'N':'You'}</span></div><div class="flex-1 min-w-0"><p class="text-[9px] font-bold text-zinc-600 uppercase tracking-widest mb-2">${isNas?'Nasoro AI':'You'}</p><div class="${isNas?'nasoro-glow':''} text-[17px] leading-relaxed text-zinc-100 font-light prose prose-invert max-w-none">${isNas?marked.parse(content):content.replace(/\n/g,'<br>')}</div>${images.map(img=>`<img src="${img}" class="mt-2 rounded-xl max-h-64 w-auto"/>`).join('')}</div></div>`;
+  const html = `
+    <div class="max-w-3xl mx-auto flex gap-5 mb-12 msg-animate px-4 md:px-0">
+      <div class="w-10 h-10 rounded-2xl flex-shrink-0 flex items-center justify-center border ${isNas?'bg-white text-black':'border-white/10 text-white'}">
+        <span class="text-xs font-bold italic">${isNas?'N':'You'}</span>
+      </div>
+      <div class="flex-1 min-w-0">
+        <p class="text-[9px] font-bold text-zinc-600 uppercase tracking-widest mb-2">${isNas?'Nasoro AI':'You'}</p>
+        <div class="${isNas?'nasoro-glow':''} text-[17px] leading-relaxed text-zinc-100 font-light prose prose-invert max-w-none">
+          ${isNas?marked.parse(content):content.replace(/\n/g,'<br>')}
+        </div>
+        ${imgs.map(i=>`<img src="${i}" class="mt-2 rounded-lg border border-white/10 max-h-64 w-auto">`).join('')}
+      </div>
+    </div>
+  `;
   chatContainer.insertAdjacentHTML('beforeend',html);
   document.querySelectorAll('pre code').forEach(el=>hljs.highlightElement(el));
   chatContainer.scrollTo({top:chatContainer.scrollHeight,behavior:'smooth'});
 }
 
-// SEND
-async function handleSend(){
+// SEND MESSAGE
+sendAction.addEventListener('click',async()=>{
   const msg=chatField.value.trim();
   if(!msg && attachments.length===0) return;
-
-  postMessage(msg,'You',attachments);
-  chatField.value='';chatField.style.height='auto';
-  attachments=[];renderTray();
+  postMessage(msg,'user',attachments);
+  chatField.value=''; chatField.style.height='auto';
+  const snapAttachments=[...attachments]; attachments=[]; renderTray();
   sendAction.disabled=true;
-
-  // Typing
-  postMessage('Typing...','nasoro');
-
+  postMessage("Thinking...","nasoro");
   try{
     const res=await fetch('https://nasoroai-production.up.railway.app/ai',{
       method:'POST',
       headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({message:msg,images:attachments})
+      body:JSON.stringify({message:msg,images:snapAttachments,generate_image:false})
     });
     const data=await res.json();
-    chatContainer.querySelectorAll('.msg-animate').forEach(el=>{if(el.innerText.includes('Typing...')) el.remove()});
-    postMessage(data.reply||'No response from AI.', 'nasoro', data.images||[]);
+    chatContainer.querySelectorAll('.msg-animate').forEach(el=>{if(el.innerText.includes("Thinking...")) el.remove();});
+    postMessage(data.reply||"No response from AI.",'nasoro',data.images||[]);
   }catch{
-    postMessage('Sync failed. Check backend connection.','nasoro');
+    postMessage("Sync failed. Check backend connection.",'nasoro');
   }finally{sendAction.disabled=false;}
-}
+});
 
-sendAction.addEventListener('click',handleSend);
+// ENTER = newline only
+chatField.addEventListener('keydown',e=>{ if(e.key==='Enter'&&!e.shiftKey){ e.preventDefault(); chatField.value+='\n'; } });
 </script>
 </body>
 </html>
