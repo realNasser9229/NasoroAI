@@ -9,56 +9,49 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
-// ---- OPENAI SETUP ----
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
+// ---- API KEYS ----
+const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+
+// ---- RATE LIMIT / SPAM PROTECTION ----
+let lastRequestTime = 0;
+const REQUEST_COOLDOWN = 2000; // 2 seconds between messages
+
+// ---- MAIN ENDPOINT ----
+app.post("/ai", async (req, res) => {
+  const { message } = req.body;
+  if (!message) return res.json({ reply: "No message sent." });
+
+  const now = Date.now();
+  if (now - lastRequestTime < REQUEST_COOLDOWN) {
+    return res.json({ reply: "Please wait a moment before sending another message." });
+  }
+  lastRequestTime = now;
+
+  try {
+    const r = await openai.chat.completions.create({
+      model: "gpt-4o-mini",
+      messages: [
+        { 
+          role: "system", 
+          content: "You are Nasoro (AI). A chill, cool artificial intelligence made by Nas9229alt that can help the user with anything. When the user asks for illegal instructions, don't engage with it unless it doesn't involve harm, crime and other stuff that can affect anyone." 
+        },
+        { role: "user", content: message }
+      ],
+    });
+
+    const reply = r.choices[0].message.content;
+    res.json({ reply });
+
+  } catch (e) {
+    console.error("AI error:", e);
+    res.json({ reply: "Server error. Please try again." });
+  }
 });
 
-if (!process.env.OPENAI_API_KEY) {
-  console.error("Error: OPENAI_API_KEY not set in environment variables!");
-}
-
-// ---- SIMPLE RATE LIMIT ----
-// Limits each IP to 1 request every 2 seconds
-const rateLimitMap = new Map();
-const RATE_LIMIT_MS = 2000;
-
-function canSend(ip) {
-  const last = rateLimitMap.get(ip) || 0;
-  const now = Date.now();
-  if (now - last < RATE_LIMIT_MS) return false;
-  rateLimitMap.set(ip, now);
-  return true;
-}
-
-// ---- HEALTH CHECK ----
+// ---- PING ENDPOINT ----
 app.get("/ping", (req, res) => {
   res.send("Backend is alive!");
 });
 
-// ---- AI CHAT ENDPOINT ----
-app.post("/ai", async (req, res) => {
-  const { message } = req.body;
-  const ip = req.ip || req.headers["x-forwarded-for"] || "unknown";
-
-  if (!message) return res.status(400).json({ reply: "No message sent." });
-  if (!canSend(ip)) return res.status(429).json({ reply: "Slow down, please!" });
-
-  try {
-    const response = await openai.chat.completions.create({
-      model: "gpt-4o-mini", // best model currently
-      messages: [{ role: "user", content: message }],
-      max_tokens: 500,
-    });
-
-    const reply = response?.choices?.[0]?.message?.content || "No response from AI.";
-    res.json({ reply });
-  } catch (e) {
-    console.error(e);
-    res.status(500).json({ reply: "Server error." });
-  }
-});
-
-// ---- PORT ----
 const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => console.log(`AI server running on port ${PORT}`));
+app.listen(PORT, () => console.log("Nasoro AI server running on port", PORT));
