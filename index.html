@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
   <title>Nasoro AI</title>
   
   <script src="https://cdn.tailwindcss.com"></script>
@@ -26,128 +26,142 @@
   <style>
     @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&display=swap');
     
+    * { -webkit-tap-highlight-color: transparent; }
+    
     body { 
       background-color: #050505; 
       color: #ffffff; 
       font-family: 'Space Grotesk', sans-serif;
-      -webkit-font-smoothing: antialiased;
       overflow: hidden;
+      height: 100vh;
+      width: 100vw;
     }
 
-    .glass-sidebar {
-      background: rgba(10, 10, 10, 0.8);
-      backdrop-filter: blur(25px);
-      -webkit-backdrop-filter: blur(25px);
-      border-right: 1px solid rgba(255, 255, 255, 0.05);
-      z-index: 100;
+    /* Ultra-Sexy Glass */
+    .glass-nav {
+      background: rgba(5, 5, 5, 0.8);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      border-bottom: 1px solid rgba(255, 255, 255, 0.05);
     }
 
-    .glass-panel {
-      background: rgba(255, 255, 255, 0.03);
-      backdrop-filter: blur(10px);
-      border: 1px solid rgba(255, 255, 255, 0.08);
+    .sidebar-glass {
+      background: rgba(10, 10, 10, 0.95);
+      backdrop-filter: blur(30px);
+      -webkit-backdrop-filter: blur(30px);
+      box-shadow: 20px 0 50px rgba(0,0,0,0.5);
     }
 
-    /* Sidebar Animation Logic */
-    #sidebar { transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1); }
-    .sidebar-open { transform: translateX(0) !important; }
+    /* Sidebar Logic */
+    #sidebar { transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1); z-index: 1000; }
+    .sidebar-active { transform: translateX(0) !important; }
     
     #overlay { 
-      transition: opacity 0.3s ease;
-      pointer-events: none;
+      transition: opacity 0.3s ease; 
+      z-index: 999;
+      display: none;
     }
-    .overlay-active { 
-      opacity: 1 !important; 
-      pointer-events: auto !important;
+    .overlay-visible { display: block !important; opacity: 1 !important; }
+
+    /* Custom Message Glow */
+    .nasoro-glow {
+      position: relative;
+    }
+    .nasoro-glow::before {
+      content: '';
+      position: absolute;
+      left: -20px;
+      top: 0;
+      bottom: 0;
+      width: 2px;
+      background: linear-gradient(to bottom, transparent, #fff, transparent);
     }
 
-    /* Message Glow */
-    .nasoro-msg { border-left: 2px solid #fff; padding-left: 1.5rem; }
-
+    /* Code Blocks */
+    pre { background: #000 !important; border: 1px solid #1f1f1f; border-radius: 12px; padding: 1rem; margin: 1rem 0; overflow-x: auto; }
+    
     @keyframes slideUp {
-      from { opacity: 0; transform: translateY(15px); }
+      from { opacity: 0; transform: translateY(10px); }
       to { opacity: 1; transform: translateY(0); }
     }
-    .animate-slide { animation: slideUp 0.4s ease-out forwards; }
-    
-    pre { background: #000 !important; border-radius: 12px; border: 1px solid #222; padding: 1rem; }
+    .msg-animate { animation: slideUp 0.3s ease-out forwards; }
   </style>
 </head>
-<body class="h-screen flex">
+<body class="flex">
 
-  <div id="overlay" onclick="toggleMenu()" class="fixed inset-0 bg-black/60 opacity-0 z-[90] md:hidden"></div>
+  <div id="overlay" onclick="closeSidebar()" class="fixed inset-0 bg-black/80 opacity-0"></div>
 
-  <aside id="sidebar" class="fixed inset-y-0 left-0 w-72 md:relative md:translate-x-0 -translate-x-full glass-sidebar flex flex-col p-6">
+  <aside id="sidebar" class="fixed inset-y-0 left-0 w-[280px] -translate-x-full md:relative md:translate-x-0 sidebar-glass flex flex-col p-6 border-r border-white/5">
     <div class="flex items-center gap-3 mb-10">
-      <div class="h-8 w-8 bg-white rounded-lg flex items-center justify-center shadow-[0_0_15px_rgba(255,255,255,0.3)]">
-        <span class="text-black font-bold italic text-sm">N</span>
+      <div class="h-9 w-9 bg-white rounded-xl flex items-center justify-center shadow-[0_0_20px_rgba(255,255,255,0.2)]">
+        <span class="text-black font-bold italic text-lg">N</span>
       </div>
-      <h1 class="text-xl font-bold tracking-tighter">Nasoro AI</h1>
+      <span class="text-xl font-bold tracking-tighter">Nasoro AI</span>
     </div>
 
-    <button onclick="location.reload()" class="w-full flex items-center justify-center gap-2 py-3.5 rounded-2xl bg-white text-black font-bold text-sm hover:opacity-90 transition active:scale-95 mb-8">
-      <i class="fa-solid fa-plus text-xs"></i> New Chat
+    <button onclick="location.reload()" class="w-full flex items-center justify-center gap-2 py-4 rounded-2xl bg-white text-black font-bold text-sm hover:scale-[1.02] transition active:scale-95 mb-8">
+      <i class="fa-solid fa-plus"></i> New Chat
     </button>
 
-    <nav class="flex-1 space-y-2 overflow-y-auto">
-        <p class="text-[10px] uppercase tracking-[0.3em] text-zinc-600 font-bold px-2 mb-4">Workspace</p>
-        <div class="flex items-center gap-3 p-3 rounded-xl hover:bg-white/5 cursor-pointer text-sm text-zinc-400 hover:text-white transition">
-            <i class="fa-solid fa-history w-4"></i> Chat History
+    <div class="flex-1 space-y-2 overflow-y-auto">
+        <p class="text-[10px] uppercase tracking-[0.3em] text-zinc-600 font-bold px-2 mb-4">Navigation</p>
+        <div class="flex items-center gap-3 p-3.5 rounded-2xl hover:bg-white/5 cursor-pointer text-sm text-zinc-400 hover:text-white transition">
+            <i class="fa-solid fa-layer-group"></i> Models
         </div>
-        <div class="flex items-center gap-3 p-3 rounded-xl hover:bg-white/5 cursor-pointer text-sm text-zinc-400 hover:text-white transition">
-            <i class="fa-solid fa-wand-magic-sparkles w-4"></i> Capabilities
+        <div class="flex items-center gap-3 p-3.5 rounded-2xl hover:bg-white/5 cursor-pointer text-sm text-zinc-400 hover:text-white transition">
+            <i class="fa-solid fa-gear"></i> Settings
         </div>
-    </nav>
+    </div>
 
-    <div class="mt-auto pt-6 border-t border-white/5 text-center">
-        <p class="text-[10px] text-zinc-500 font-bold tracking-widest uppercase">Made by Nas9229alt</p>
+    <div class="mt-auto pt-6 border-t border-white/5">
+        <p class="text-[10px] text-zinc-500 font-bold tracking-[0.2em] text-center uppercase">Nasoro AI • Made by Nas9229alt</p>
     </div>
   </aside>
 
-  <main class="flex-1 flex flex-col relative h-full w-full">
+  <main class="flex-1 flex flex-col relative h-full min-w-0">
     
-    <header class="flex items-center justify-between p-6 bg-nasoro-bg/80 backdrop-blur-xl sticky top-0 z-[80]">
-      <div class="md:hidden flex items-center gap-3">
+    <header class="flex items-center justify-between p-5 md:p-6 glass-nav sticky top-0 z-[100]">
+      <div class="flex items-center gap-3 md:hidden">
         <div class="h-8 w-8 bg-white rounded-lg flex items-center justify-center">
-            <span class="text-black font-bold text-sm">N</span>
+            <span class="text-black font-bold italic text-sm">N</span>
         </div>
-        <span class="font-bold tracking-tighter">Nasoro</span>
+        <span class="font-bold tracking-tighter text-lg">Nasoro</span>
       </div>
       <div class="hidden md:block"></div>
       
-      <button onclick="toggleMenu()" class="w-12 h-12 flex items-center justify-center rounded-2xl border border-white/10 hover:bg-white hover:text-black transition-all duration-300 shadow-2xl">
+      <button id="menu-toggle" onclick="openSidebar()" class="w-11 h-11 flex items-center justify-center rounded-xl border border-white/10 hover:bg-white hover:text-black transition-all duration-300">
         <i class="fa-solid fa-bars-staggered text-sm"></i>
       </button>
     </header>
 
-    <div id="chat-container" class="flex-1 overflow-y-auto px-6 md:px-0 pb-44 pt-4">
-      <div id="welcome" class="max-w-2xl mx-auto mt-20 text-center space-y-6">
-        <h1 class="text-5xl md:text-7xl font-extrabold tracking-tighter">Nasoro</h1>
-        <p class="text-zinc-500 text-lg font-light">Experience the future of intelligence.</p>
+    <div id="chat-container" class="flex-1 overflow-y-auto px-6 md:px-0 pt-6 pb-48">
+      <div id="welcome-ui" class="max-w-xl mx-auto mt-24 text-center space-y-6">
+        <h1 class="text-6xl font-extrabold tracking-tighter">Nasoro</h1>
+        <p class="text-zinc-500 text-lg font-light tracking-wide">Intelligence refined.</p>
       </div>
     </div>
 
-    <div class="absolute bottom-0 left-0 w-full p-6 md:pb-10 bg-gradient-to-t from-nasoro-bg via-nasoro-bg/90 to-transparent">
+    <div class="absolute bottom-0 left-0 w-full p-4 md:pb-10 bg-gradient-to-t from-nasoro-bg via-nasoro-bg/90 to-transparent">
       <div class="max-w-3xl mx-auto">
         
-        <div id="image-preview" class="hidden flex gap-3 p-4 glass-panel border-b-0 rounded-t-[28px]"></div>
+        <div id="img-tray" class="hidden flex gap-3 p-4 bg-nasoro-card/80 backdrop-blur-xl border border-white/5 border-b-0 rounded-t-[30px]"></div>
 
-        <div class="glass-panel p-3 rounded-[28px] flex items-end gap-2 focus-within:border-white/20 transition-all duration-500">
+        <div class="bg-nasoro-card/80 backdrop-blur-xl border border-white/10 p-3 rounded-[30px] flex items-end gap-2 focus-within:border-white/30 transition-all duration-300">
           
-          <label class="w-12 h-12 flex items-center justify-center rounded-2xl cursor-pointer hover:bg-white/5 transition-all">
+          <label class="w-12 h-12 flex items-center justify-center rounded-2xl cursor-pointer hover:bg-white/5 transition active:scale-90">
             <i class="fa-solid fa-plus text-zinc-500"></i>
-            <input type="file" id="image-upload" class="hidden" accept="image/*" multiple>
+            <input type="file" id="img-input" class="hidden" accept="image/*" multiple>
           </label>
 
           <textarea 
-            id="chat-input" 
+            id="chat-field" 
             rows="1" 
-            placeholder="Type your message..."
-            class="flex-1 bg-transparent border-none focus:ring-0 py-3 text-white placeholder-zinc-600 text-lg resize-none max-h-48"
+            placeholder="Talk with Nasoro..."
+            class="flex-1 bg-transparent border-none focus:ring-0 py-3 text-white placeholder-zinc-600 text-lg resize-none max-h-[200px]"
           ></textarea>
 
-          <button id="send-btn" class="w-12 h-12 flex items-center justify-center rounded-2xl bg-white text-black hover:scale-105 active:scale-95 transition-all shadow-xl shadow-white/5">
-            <i class="fa-solid fa-arrow-up text-sm"></i>
+          <button id="send-action" class="w-12 h-12 flex items-center justify-center rounded-2xl bg-white text-black hover:opacity-80 active:scale-90 transition shadow-lg">
+            <i class="fa-solid fa-arrow-up"></i>
           </button>
         </div>
         
@@ -160,112 +174,123 @@
 
   <script>
     const chatContainer = document.getElementById('chat-container');
-    const welcome = document.getElementById('welcome');
-    const chatInput = document.getElementById('chat-input');
-    const sendBtn = document.getElementById('send-btn');
-    const imageUpload = document.getElementById('image-upload');
-    const imagePreview = document.getElementById('image-preview');
+    const welcomeUi = document.getElementById('welcome-ui');
+    const chatField = document.getElementById('chat-field');
+    const sendAction = document.getElementById('send-action');
+    const imgInput = document.getElementById('img-input');
+    const imgTray = document.getElementById('img-tray');
     const sidebar = document.getElementById('sidebar');
     const overlay = document.getElementById('overlay');
 
-    let uploaded = [];
+    let attachments = [];
 
-    // TOGGLE MENU LOGIC
-    function toggleMenu() {
-      sidebar.classList.toggle('sidebar-open');
-      overlay.classList.toggle('overlay-active');
+    // SIDEBAR FUNCTIONS
+    function openSidebar() {
+      sidebar.classList.add('sidebar-active');
+      overlay.classList.add('overlay-visible');
+    }
+
+    function closeSidebar() {
+      sidebar.classList.remove('sidebar-active');
+      overlay.classList.remove('overlay-visible');
     }
 
     // IMAGE SYSTEM
-    imageUpload.addEventListener('change', (e) => {
+    imgInput.addEventListener('change', (e) => {
       const files = Array.from(e.target.files);
       files.forEach(file => {
-        const reader = new FileReader();
-        reader.onload = (ev) => {
-          uploaded.push(ev.target.result);
-          renderImages();
+        const r = new FileReader();
+        r.onload = (ev) => {
+          attachments.push(ev.target.result);
+          renderTray();
         };
-        reader.readAsDataURL(file);
+        r.readAsDataURL(file);
       });
     });
 
-    function renderImages() {
-      if(uploaded.length > 0) {
-        imagePreview.classList.remove('hidden');
-        imagePreview.innerHTML = uploaded.map((src, i) => `
-          <div class="relative w-16 h-16 rounded-xl overflow-hidden border border-white/10 group">
-            <img src="${src}" class="w-full h-full object-cover">
-            <div onclick="removeImg(${i})" class="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 flex items-center justify-center cursor-pointer transition-opacity">
+    function renderTray() {
+      if(attachments.length > 0) {
+        imgTray.classList.remove('hidden');
+        imgTray.innerHTML = attachments.map((s, i) => `
+          <div class="relative w-16 h-16 rounded-2xl overflow-hidden border border-white/10">
+            <img src="${s}" class="w-full h-full object-cover">
+            <div onclick="removeImg(${i})" class="absolute inset-0 bg-black/60 flex items-center justify-center cursor-pointer opacity-0 hover:opacity-100 transition-opacity">
               <i class="fa-solid fa-trash text-white text-xs"></i>
             </div>
           </div>
         `).join('');
       } else {
-        imagePreview.classList.add('hidden');
+        imgTray.classList.add('hidden');
       }
     }
 
     window.removeImg = (i) => {
-      uploaded.splice(i, 1);
-      renderImages();
-    }
+      attachments.splice(i, 1);
+      renderTray();
+    };
 
-    // CHAT LOGIC
-    chatInput.addEventListener('input', function() {
+    // CHAT CORE
+    chatField.addEventListener('input', function() {
       this.style.height = 'auto';
       this.style.height = this.scrollHeight + 'px';
     });
 
-    function addMessage(content, sender) {
-      welcome.classList.add('hidden');
-      const isNas = sender === 'nasoro';
-      const msg = `
-        <div class="max-w-3xl mx-auto flex gap-6 mb-12 animate-slide">
-          <div class="w-10 h-10 rounded-2xl flex-shrink-0 flex items-center justify-center border ${isNas ? 'bg-white text-black shadow-lg shadow-white/10' : 'border-white/10 text-white'}">
-            <span class="text-[10px] font-bold">${isNas ? 'N' : 'U'}</span>
+    function postMessage(content, role) {
+      welcomeUi.classList.add('hidden');
+      const isNas = role === 'nasoro';
+      const html = `
+        <div class="max-w-3xl mx-auto flex gap-5 mb-12 msg-animate px-4 md:px-0">
+          <div class="w-10 h-10 rounded-2xl flex-shrink-0 flex items-center justify-center border ${isNas ? 'bg-white text-black' : 'border-white/10 text-white'}">
+            <span class="text-xs font-bold italic">${isNas ? 'N' : 'U'}</span>
           </div>
           <div class="flex-1 min-w-0">
             <p class="text-[9px] font-bold text-zinc-600 uppercase tracking-widest mb-2">${isNas ? 'Nasoro AI' : 'Nas9229alt'}</p>
-            <div class="${isNas ? 'nasoro-msg' : ''} text-[17px] leading-relaxed text-zinc-200 font-light prose prose-invert max-w-none">
+            <div class="${isNas ? 'nasoro-glow' : ''} text-[17px] leading-relaxed text-zinc-100 font-light prose prose-invert max-w-none">
               ${isNas ? marked.parse(content) : content.replace(/\n/g, '<br>')}
             </div>
           </div>
         </div>
       `;
-      chatContainer.insertAdjacentHTML('beforeend', msg);
+      chatContainer.insertAdjacentHTML('beforeend', html);
       document.querySelectorAll('pre code').forEach(el => hljs.highlightElement(el));
       chatContainer.scrollTo({ top: chatContainer.scrollHeight, behavior: 'smooth' });
     }
 
-    async function send() {
-      const text = chatInput.value.trim();
-      if(!text && uploaded.length === 0) return;
+    async function handleSend() {
+      const msg = chatField.value.trim();
+      if(!msg && attachments.length === 0) return;
 
-      addMessage(text, 'user');
-      chatInput.value = '';
-      chatInput.style.height = 'auto';
-      const pics = [...uploaded];
-      uploaded = [];
-      renderImages();
-      sendBtn.disabled = true;
+      postMessage(msg, 'user');
+      chatField.value = '';
+      chatField.style.height = 'auto';
+      const snapImg = [...attachments];
+      attachments = [];
+      renderTray();
+      sendAction.disabled = true;
 
       try {
         const res = await fetch("https://nasoroai-production.up.railway.app/ai", {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ message: text, images: pics, provider: "openai" })
+          body: JSON.stringify({ message: msg, images: snapImg, provider: "openai" })
         });
         const data = await res.json();
-        addMessage(data.reply || "...", 'nasoro');
+        postMessage(data.reply || "Thinking...", 'nasoro');
       } catch {
-        addMessage("Synchronization error. Backend unreachable.", 'nasoro');
+        postMessage("Sync failed. Check backend connection.", 'nasoro');
       } finally {
-        sendBtn.disabled = false;
+        sendAction.disabled = false;
       }
     }
 
-    sendBtn.addEventListener('click', send);
-    chatInput.addEventListener('keydown', e => { if(e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); send(); } });
+    sendAction.addEventListener('click', handleSend);
+    chatField.addEventListener('keydown', e => { 
+        if(e.key === 'Enter' && !e.shiftKey) { 
+            e.preventDefault(); 
+            handleSend(); 
+        } 
+    });
   </script>
 </body>
-</html>
+            </html>
+            
