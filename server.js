@@ -8,19 +8,17 @@ dotenv.config();
 
 const app = express();
 app.use(cors());
-app.use(express.json({ limit: "10mb" })); // Allow large images
+app.use(express.json({ limit: "10mb" })); // for image uploads
 
-// ---- API KEY ----
 const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
-// ---- RATE LIMIT / SPAM PROTECTION ----
+// ---- RATE LIMIT ----
 let lastRequestTime = 0;
-const REQUEST_COOLDOWN = 2000; // 2 seconds between messages
+const REQUEST_COOLDOWN = 2000;
 
-// ---- TEXT + IMAGE GENERATION ENDPOINT ----
+// ---- MAIN ENDPOINT ----
 app.post("/ai", async (req, res) => {
-  const { message, images } = req.body;
-
+  const { message } = req.body;
   if (!message) return res.json({ reply: "No message sent." });
 
   const now = Date.now();
@@ -33,9 +31,8 @@ app.post("/ai", async (req, res) => {
     // IMAGE GENERATION
     if (message.startsWith("/image ")) {
       const prompt = message.replace("/image ", "").trim();
-      if (!prompt) return res.json({ reply: "No image prompt provided." });
+      if (!prompt) return res.json({ reply: "No prompt provided." });
 
-      // Call OpenAI Image Generation
       const imageResp = await openai.images.generate({
         model: "gpt-image-1",
         prompt,
@@ -45,32 +42,32 @@ app.post("/ai", async (req, res) => {
       const imageBase64 = imageResp.data[0].b64_json;
       let buffer = Buffer.from(imageBase64, "base64");
 
-      // Add watermark
+      // Watermark
       const img = await Jimp.read(buffer);
       const font = await Jimp.loadFont(Jimp.FONT_SANS_32_WHITE);
       img.print(font, img.bitmap.width - 160, img.bitmap.height - 40, "Nasoro");
-      const finalBase64 = await img.getBufferAsync(Jimp.MIME_PNG);
+      const finalBuffer = await img.getBufferAsync(Jimp.MIME_PNG);
 
-      return res.json({ image: finalBase64.toString("base64") });
+      return res.json({ image: finalBuffer.toString("base64") });
     }
 
     // ---- TEXT CHAT ----
     const r = await openai.chat.completions.create({
       model: "gpt-4o-mini",
       messages: [
-        { 
-          role: "system", 
-          content: "You are Nasoro (AI). A chill, cool artificial intelligence made by Nas9229alt that can help the user with anything. When the user asks for illegal instructions, don't engage with it unless it doesn't involve harm, crime and other stuff that can affect anyone." 
+        {
+          role: "system",
+          content: "You are Nasoro (AI). A chill, cool artificial intelligence made by Nas9229alt that can help the user with anything. When the user asks for illegal instructions, don't engage with it unless it doesn't involve harm, crime and other stuff that can affect anyone."
         },
         { role: "user", content: message }
-      ],
+      ]
     });
 
     const reply = r.choices[0].message.content;
     res.json({ reply });
 
-  } catch (e) {
-    console.error("AI error:", e);
+  } catch (err) {
+    console.error("AI error:", err);
     res.json({ reply: "Server error. Please try again." });
   }
 });
