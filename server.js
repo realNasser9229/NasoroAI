@@ -2,13 +2,12 @@ import express from "express";
 import cors from "cors";
 import dotenv from "dotenv";
 import OpenAI from "openai";
-import Jimp from "jimp";
 
 dotenv.config();
 
 const app = express();
 app.use(cors());
-app.use(express.json({ limit: "10mb" })); // for image uploads
+app.use(express.json({ limit: "10mb" })); // for uploaded images
 
 const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
@@ -18,8 +17,10 @@ const REQUEST_COOLDOWN = 2000;
 
 // ---- MAIN ENDPOINT ----
 app.post("/ai", async (req, res) => {
-  const { message } = req.body;
-  if (!message) return res.json({ reply: "No message sent." });
+  const { message, images } = req.body;
+
+  if (!message && (!images || images.length === 0))
+    return res.json({ reply: "No message or image sent." });
 
   const now = Date.now();
   if (now - lastRequestTime < REQUEST_COOLDOWN) {
@@ -28,30 +29,14 @@ app.post("/ai", async (req, res) => {
   lastRequestTime = now;
 
   try {
-    // IMAGE GENERATION
-    if (message.startsWith("/image ")) {
-      const prompt = message.replace("/image ", "").trim();
-      if (!prompt) return res.json({ reply: "No prompt provided." });
+    // Only text chat (no image generation)
+    let prompt = message || "";
 
-      const imageResp = await openai.images.generate({
-        model: "gpt-image-1",
-        prompt,
-        size: "1024x1024"
-      });
-
-      const imageBase64 = imageResp.data[0].b64_json;
-      let buffer = Buffer.from(imageBase64, "base64");
-
-      // Watermark
-      const img = await Jimp.read(buffer);
-      const font = await Jimp.loadFont(Jimp.FONT_SANS_32_WHITE);
-      img.print(font, img.bitmap.width - 160, img.bitmap.height - 40, "Nasoro");
-      const finalBuffer = await img.getBufferAsync(Jimp.MIME_PNG);
-
-      return res.json({ image: finalBuffer.toString("base64") });
+    // Optional: include uploaded image info in prompt
+    if (images && images.length > 0) {
+      prompt += "\n[User uploaded images: " + images.map((_, i) => `Image${i + 1}`).join(", ") + "]";
     }
 
-    // ---- TEXT CHAT ----
     const r = await openai.chat.completions.create({
       model: "gpt-4o-mini",
       messages: [
@@ -59,7 +44,7 @@ app.post("/ai", async (req, res) => {
           role: "system",
           content: "You are Nasoro (AI). A chill, cool artificial intelligence made by Nas9229alt that can help the user with anything. When the user asks for illegal instructions, don't engage with it unless it doesn't involve harm, crime and other stuff that can affect anyone."
         },
-        { role: "user", content: message }
+        { role: "user", content: prompt }
       ]
     });
 
