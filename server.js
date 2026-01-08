@@ -1,100 +1,86 @@
 import express from "express";
 import cors from "cors";
-import bodyParser from "body-parser";
-import fetch from "node-fetch";
 import dotenv from "dotenv";
+import OpenAI from "openai";
 
 dotenv.config();
+
 const app = express();
 app.use(cors());
-app.use(bodyParser.json({ limit: "25mb" }));
+app.use(express.json({ limit: "50mb" })); // handle large image payloads
 
-const PORT = process.env.PORT || 3000;
+// Initialize OpenAI client
+const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
-// ---------- NASORO VERSION SETTINGS ----------
-const NASORO_VERSIONS = {
-  "1.5": { provider: "openai", model: "gpt-3.5-turbo" },
-  "2":   { provider: "openai", model: "gpt-4o-mini" },
-  // Add more versions here safely later
+// Map Nasoro versions to OpenAI models
+const nasoroVersions = {
+  "1.5": "gpt-3.5-turbo",
+  "2": "gpt-4o-mini",
+  "2.5": "gpt-4.1-mini",
+  "3": "gpt-5-mini",
+  "4": "gpt-5.2-chat-latest", // LIMITED
+  "4.5": "gpt-5.2-pro", // PAID
 };
 
-// ---------- HELPER FUNCTIONS ----------
+// Example placeholder for user payments (future integration)
+const userCredits = {}; // { userId: credits }
 
-async function callOpenAI(message, model, images = []) {
-  const prompt = `You are Nasoro AI. User sent: ${message}. Images: ${images.length}`;
-  try {
-    const res = await fetch("https://api.openai.com/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "Authorization": `Bearer ${process.env.OPENAI_API_KEY}`
-      },
-      body: JSON.stringify({
-        model,
-        messages: [{ role: "user", content: prompt }],
-      }),
-    });
-    const data = await res.json();
-    if (data.error) throw new Error(data.error.message);
-    return data.choices?.[0]?.message?.content || "No reply from OpenAI";
-  } catch (err) {
-    console.error("OpenAI Error:", err.message);
-    return "OpenAI provider failed. Try again later.";
-  }
-}
+app.get("/", (req, res) => {
+  res.send("Nasoro AI server running.");
+});
 
-async function callGemini(message, model, images = []) {
-  if (!process.env.GEMINI_API_KEY) return "Gemini provider not configured.";
-  // Placeholder example, adapt to actual Gemini endpoint
-  try {
-    const res = await fetch("https://gemini.googleapis.com/v1/models/text:predict", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "Authorization": `Bearer ${process.env.GEMINI_API_KEY}`
-      },
-      body: JSON.stringify({
-        model,
-        prompt: message,
-        images
-      }),
-    });
-    const data = await res.json();
-    return data?.prediction || "Gemini replied nothing";
-  } catch (err) {
-    console.error("Gemini Error:", err.message);
-    return "Gemini provider failed. Try again later.";
-  }
-}
-
-// ---------- ROUTES ----------
-app.get("/", (req, res) => res.send("Nasoro AI Server is running."));
-
+// Core chat endpoint
 app.post("/ai", async (req, res) => {
-  const { message, images = [], version = "1.5", provider } = req.body;
+  const { message, images, version = "1.5", userId } = req.body;
 
-  if (!message && images.length === 0) return res.json({ reply: "No input provided." });
-
-  const v = NASORO_VERSIONS[version] || { provider: "openai", model: "gpt-3.5-turbo" };
-
-  let reply = "No reply.";
-  try {
-    if (v.provider === "openai") {
-      reply = await callOpenAI(message, v.model, images);
-    } else if (v.provider === "gemini") {
-      reply = await callGemini(message, v.model, images);
-    } else {
-      reply = "Invalid provider.";
-    }
-  } catch (err) {
-    console.error("Server Error:", err.message);
-    reply = "Server encountered an error. Try again later.";
+  // Check credits for paid versions
+  if (version === "4.5" && (!userCredits[userId] || userCredits[userId] <= 0)) {
+    return res.json({ reply: "You need credits to access Nasoro 4.5." });
   }
 
-  res.json({ reply });
+  const model = nasoroVersions[version];
+  if (!model) {
+    return res.json({ reply: "Invalid Nasoro version." });
+  }
+
+  try {
+    // Combine message + image info
+    let fullPrompt = message;
+    if (images && images.length > 0) {
+      fullPrompt += "\n\nUser uploaded images (base64 data hidden in server).";
+    }
+
+    const completion = await openai.chat.completions.create({
+      model,
+      messages: [
+        {
+          role: "system",
+          content: "You are Nasoro AI, helpful and polite.",
+        },
+        {
+          role: "user",
+          content: fullPrompt,
+        },
+      ],
+    });
+
+    // Deduct 1 credit for paid version
+    if (version === "4.5") userCredits[userId]--;
+
+    res.json({ reply: completion.choices[0].message.content });
+  } catch (err) {
+    console.error("OpenAI error:", err.message);
+    res.json({ reply: "Server encountered an error. Try again later." });
+  }
 });
 
-// ---------- START SERVER ----------
-app.listen(PORT, () => {
-  console.log(`Nasoro AI server running on port ${PORT}`);
+// Placeholder payment endpoint
+app.post("/pay", (req, res) => {
+  const { userId, amount } = req.body;
+  if (!userCredits[userId]) userCredits[userId] = 0;
+  userCredits[userId] += amount; // amount in credits
+  res.json({ success: true, credits: userCredits[userId] });
 });
+
+const PORT = process.env.PORT || 3000;
+app.listen(PORT, () => console.log(`Nasoro server running on port ${PORT}`));
