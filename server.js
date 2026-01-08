@@ -1,50 +1,64 @@
-// server.js
-const express = require("express");
-const cors = require("cors");
-const bodyParser = require("body-parser");
-const path = require("path");
+import express from "express";
+import cors from "cors";
+import dotenv from "dotenv";
+import OpenAI from "openai";
+
+dotenv.config();
 
 const app = express();
-const PORT = process.env.PORT || 3000;
-
-// Middlewares
 app.use(cors());
-app.use(bodyParser.json());
-app.use(express.static(path.join(__dirname, "public"))); // serve your index.html from /public
+app.use(express.json({ limit: "10mb" })); // for uploaded images
 
-// ========== AI Endpoint ==========
+const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+
+// ---- RATE LIMIT ----
+let lastRequestTime = 0;
+const REQUEST_COOLDOWN = 2000;
+
+// ---- MAIN ENDPOINT ----
 app.post("/ai", async (req, res) => {
-  const { message, images, tier } = req.body;
+  const { message, images } = req.body;
 
-  // Mock AI response logic
-  console.log(`Message: ${message}`);
-  console.log(`Images: ${images?.length || 0}`);
-  console.log(`Tier: ${tier}`);
+  if (!message && (!images || images.length === 0))
+    return res.json({ reply: "No message or image sent." });
 
-  // Here you can integrate real AI API if you want later
-  const reply = `Echo (${tier}): ${message || "(image sent)"}`;
+  const now = Date.now();
+  if (now - lastRequestTime < REQUEST_COOLDOWN) {
+    return res.json({ reply: "Please wait a moment before sending another message." });
+  }
+  lastRequestTime = now;
 
-  res.json({ reply });
+  try {
+    // Only text chat (no image generation)
+    let prompt = message || "";
+
+    // Optional: include uploaded image info in prompt
+    if (images && images.length > 0) {
+      prompt += "\n[User uploaded images: " + images.map((_, i) => `Image${i + 1}`).join(", ") + "]";
+    }
+
+    const r = await openai.chat.completions.create({
+      model: "gpt-4o-mini",
+      messages: [
+        {
+          role: "system",
+          content: "You are Nasoro (AI). A chill, cool artificial intelligence made by Nas9229alt that can help the user with anything. When the user asks for illegal instructions, don't engage with it unless it doesn't involve harm, crime and other stuff that can affect anyone."
+        },
+        { role: "user", content: prompt }
+      ]
+    });
+
+    const reply = r.choices[0].message.content;
+    res.json({ reply });
+
+  } catch (err) {
+    console.error("AI error:", err);
+    res.json({ reply: "Server error. Please try again." });
+  }
 });
 
-// ========== Payments Endpoint ==========
-app.post("/create-checkout", (req, res) => {
-  const { tier } = req.body;
+// ---- PING ----
+app.get("/ping", (req, res) => res.send("Backend is alive!"));
 
-  console.log(`Creating checkout for tier: ${tier}`);
-
-  // Mock URL for testing
-  const url = "https://example.com/checkout";
-
-  res.json({ url });
-});
-
-// Serve index.html fallback (for SPA routing)
-app.get("*", (req, res) => {
-  res.sendFile(path.join(__dirname, "public", "index.html"));
-});
-
-// Start server
-app.listen(PORT, () => {
-  console.log(`Nasoro backend running at http://localhost:${PORT}`);
-});
+const PORT = process.env.PORT || 3000;
+app.listen(PORT, () => console.log("Nasoro AI server running on port", PORT));
