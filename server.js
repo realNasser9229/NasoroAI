@@ -1,111 +1,103 @@
+// server.js
 import express from "express";
+import path from "path";
+import { fileURLToPath } from "url";
+import fetch from "node-fetch"; // Node 22 has fetch built-in, remove this line if using native
 import cors from "cors";
-import dotenv from "dotenv";
-import cookieParser from "cookie-parser";
-import OpenAI from "openai";
 
-dotenv.config();
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 const app = express();
-const openai = new OpenAI({ apiKey: process.env.OPENAI_KEY });
-
-app.use(cors());
-app.use(express.json({ limit: "10mb" }));
-app.use(cookieParser());
-
-// ----------------------
-// Config
-// ----------------------
 const PORT = process.env.PORT || 3000;
 
-// ----------------------
-// System Prompt
-// ----------------------
-const SYSTEM_PROMPT = "You are Nasoro AI. A chill multimodal AI made by Nas9229alt.";
+// ========== CONFIGURATION ==========
+const OPENAI_KEY = process.env.OPENAI_KEY; // Your ChatGPT API key
+if (!OPENAI_KEY) {
+  console.warn("⚠️ OPENAI_KEY not set! AI responses will fail.");
+}
 
-// ----------------------
-// Tier config (OpenAI models)
-// ----------------------
-const NASORO_TIERS = {
-  "Oro-1.2-fast": { model: "gpt-3.5-turbo", limit: 110, paid: false },
-  "Oro-1.2-pro": { model: "gpt-3.5-turbo-16k", limit: 70, paid: false },
-  "Oro-2-fast": { model: "gpt-4", limit: 50, paid: false },
-  "Oro-2-pro": { model: "gpt-4-32k", limit: 40, paid: false },
-  "Oro-2-chat": { model: "gpt-3.5-turbo", limit: 50, paid: false }
+// Fake payment URLs (replace with Stripe/PayPal integration if needed)
+const PAYMENT_LINKS = {
+  "2-fast": "https://checkout.fake/2fast",
+  "2-pro": "https://checkout.fake/2pro",
 };
 
-// ----------------------
-// In-memory users
-// ----------------------
-const users = new Map(); // uid -> { tier: "Oro-1.2-fast" ... }
+// Nasoro Tiers
+const NASORO_TIERS = [
+  { name: "1.2 Fast", tier: "1.2-fast", paid: false, model: "gpt-3.5-turbo" },
+  { name: "1.2 Pro", tier: "1.2-pro", paid: false, model: "gpt-4" },
+  { name: "2 Fast", tier: "2-fast", paid: true, model: "gpt-4" },
+  { name: "2 Pro", tier: "2-pro", paid: true, model: "gpt-4" },
+];
 
-// ----------------------
-// Helpers
-// ----------------------
-function newUID() {
-  return crypto.randomBytes(16).toString("hex");
-}
+// System prompt
+const SYSTEM_PROMPT = "You are Nasoro AI. A chill multimodal AI made by Nas9229alt.";
 
-function getUser(req, res) {
-  let uid = req.cookies.nasoro_uid;
-  if (!uid) {
-    uid = newUID();
-    res.cookie("nasoro_uid", uid, { httpOnly: true, sameSite: "lax", secure: true });
-    users.set(uid, { tier: "Oro-1.2-fast" });
-  }
-  if (!users.has(uid)) users.set(uid, { tier: "Oro-1.2-fast" });
-  return uid;
-}
+// ========== MIDDLEWARE ==========
+app.use(cors());
+app.use(express.json());
+app.use(express.static(path.join(__dirname, "public"))); // serve index.html from public/
 
-// ----------------------
-// Rate limit
-// ----------------------
-const usage = {}; // ip -> { tier: count }
-function checkLimit(ip, tier) {
-  if (!usage[ip]) usage[ip] = {};
-  if (!usage[ip][tier]) usage[ip][tier] = 0;
-  if (usage[ip][tier] >= NASORO_TIERS[tier].limit) return false;
-  usage[ip][tier]++;
-  return true;
-}
+// ========== ROUTES ==========
 
-// ----------------------
-// AI endpoint
-// ----------------------
-app.post("/ai", async (req, res) => {
+// Health check
+app.get("/health", (req,res)=>{
+  res.json({status:"ok"});
+});
+
+// AI chat endpoint
+app.post("/ai", async (req,res)=>{
   try {
-    const { message, images = [], tier = "Oro-1.2-fast" } = req.body;
-    const uid = getUser(req, res);
-    const userTier = users.get(uid).tier;
+    const { message, images, tier } = req.body;
 
-    // Enforce paid tiers (now everything is free)
-    if (NASORO_TIERS[tier].paid && userTier !== tier) {
-      return res.json({ reply: "Upgrade required for this tier." });
-    }
+    const tierData = NASORO_TIERS.find(t=>t.tier===tier);
+    const model = tierData ? tierData.model : "gpt-3.5-turbo";
 
-    if (!message && images.length === 0) return res.json({ reply: "Say something to Nasoro." });
-
-    const ip = req.headers["x-forwarded-for"]?.split(",")[0] || req.socket.remoteAddress;
-    if (!checkLimit(ip, tier)) return res.json({ reply: "Daily limit reached for this tier." });
-
-    // Call OpenAI GPT
-    const response = await openai.chat.completions.create({
-      model: NASORO_TIERS[tier].model,
+    // Basic payload for ChatGPT
+    const payload = {
+      model: model,
       messages: [
         { role: "system", content: SYSTEM_PROMPT },
         { role: "user", content: message }
-      ]
+      ],
+      temperature: 0.7,
+      max_tokens: 1000
+    };
+
+    // Call OpenAI API
+    const response = await fetch("https://api.openai.com/v1/chat/completions", {
+      method: "POST",
+      headers: {
+        "Authorization": `Bearer ${OPENAI_KEY}`,
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify(payload)
     });
 
-    const reply = response.choices?.[0]?.message?.content || "Nasoro had a hiccup!";
-    res.json({ reply, tier: userTier });
+    const data = await response.json();
+    const reply = data?.choices?.[0]?.message?.content || "🤖 Nasoro couldn't think of a reply.";
+
+    res.json({ reply });
 
   } catch (err) {
-    console.error(err);
-    res.json({ reply: "Server error. Nasoro tripped over a wire." });
+    console.error("AI ERROR:", err);
+    res.status(500).json({ reply: "❌ Sync failed. Check backend connection." });
   }
 });
 
-// ----------------------
-app.get("/ping", (req, res) => res.send("Nasoro backend alive."));
-app.listen(PORT, () => console.log(`Nasoro server running on port ${PORT}`));
+// Payment endpoint
+app.post("/create-checkout", (req,res)=>{
+  const { tier } = req.body;
+  const url = PAYMENT_LINKS[tier];
+  if(url) res.json({url});
+  else res.json({error:"Payment not available"});
+});
+
+// Fallback for frontend routing
+app.get("*", (req,res)=>{
+  res.sendFile(path.join(__dirname, "public/index.html"));
+});
+
+// Start server
+app.listen(PORT, ()=>console.log(`🚀 Nasoro server running on port ${PORT}`));
