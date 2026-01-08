@@ -161,7 +161,6 @@
 </div>
 
 <script>
-const OWNER_KEY = "nas0r0-key-9229"; // Owner bypass
 const NASORO_TIERS = [
   { name: "1.2 Fast", tier: "1.2-fast", paid: false },
   { name: "1.2 Thinking", tier: "1.2-pro", paid: false },
@@ -259,7 +258,7 @@ async function handleSend(){
     const res = await fetch("/ai",{
       method:'POST',
       headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({message:msg,images:snapImg,tier:selectedTier,ownerKey:OWNER_KEY})
+      body:JSON.stringify({message:msg,images:snapImg,tier:selectedTier})
     });
     const data = await res.json();
     postMessage(data.reply || "Thinking...",'nasoro');
@@ -271,19 +270,18 @@ async function handleSend(){
 sendAction.addEventListener('click', handleSend);
 chatField.addEventListener('keydown', e => { if(e.key==='Enter' && !e.shiftKey){ e.preventDefault(); handleSend(); } });
 
-// ========== Payments ==========
+// ========== Payments (Simulated) ==========
+const PAYMENT_LINKS = {
+  "2-fast": "https://buy.stripe.com/FAST_PLAN_LINK",
+  "2-pro":  "https://buy.stripe.com/PRO_PLAN_LINK"
+};
+
 async function buyTier(tier){
-  try {
-    const res = await fetch("/buy",{method:"POST",headers:{'Content-Type':'application/json'},body:JSON.stringify({tier})});
-    const data = await res.json();
-    if(data.success){
-      const confirmRes = await fetch("/confirm",{method:"POST",headers:{'Content-Type':'application/json'},body:JSON.stringify({tier,token:"simulated"})});
-      const confirmData = await confirmRes.json();
-      alert(confirmData.msg);
-    } else alert(data.msg);
-  } catch(e){ alert("Payment failed."); }
+  const link = PAYMENT_LINKS[tier];
+  if(!link) return alert("Payment not configured yet.");
+  window.open(link,"_blank");
 }
 </script>
 
 </body>
-  </html>
+</html>
