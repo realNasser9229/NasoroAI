@@ -1,100 +1,92 @@
 import express from "express";
 import cors from "cors";
-import bodyParser from "body-parser";
+import dotenv from "dotenv";
 import fetch from "node-fetch";
+
+dotenv.config();
 
 const app = express();
 app.use(cors());
-app.use(bodyParser.json({ limit: "10mb" }));
+app.use(express.json());
 
 const PORT = process.env.PORT || 3000;
+const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
 
-// ===== Nasoro Tiers / Models =====
-const nasoroTiers = {
-  "1.2 Fast": { model: "gemini-2.5-flash-lite", price: 0 },
-  "1.2 Pro": { model: "gemini-2.5-pro", price: 0 },
-  "2 Fast": { model: "gemini-3-flash-preview", price: 49.99 },  // TRY per month
-  "2 Pro": { model: "gemini-3-pro-preview", price: 209.99 }     // TRY per month
+// Define Nasoro versions and the corresponding Gemini model
+const nasoroVersions = {
+  "1.2 Fast": { model: "gemini-2.5-flash-lite", paid: false },
+  "1.2 Pro": { model: "gemini-2.5-pro", paid: false },
+  "2 Fast": { model: "gemini-3-flash-preview", paid: true, priceTRY: 49.99 },
+  "2 Pro": { model: "gemini-3-pro-preview", paid: true, priceTRY: 209.99 },
 };
 
-// ===== Simple user DB simulation =====
-const users = {
-  "user1": { hasPaid: false }, // update this manually / via payment system
-  // Add more users here
-};
+// Simple in-memory storage for user sessions / paid access
+let paidAccess = {}; // { sessionId: { tier: "2 Pro", expires: Date } }
 
-// ===== Helper: Get Gemini model based on version =====
-function getNasoroModel(version, userId) {
-  const tier = nasoroTiers[version];
-  if (!tier) throw new Error("Invalid Nasoro version");
-
-  const user = users[userId] || { hasPaid: false };
-  if (tier.price > 0 && !user.hasPaid) {
-    throw new Error("This tier requires payment.");
-  }
-
-  return tier.model;
+// Utility to check if a tier is paid
+function isPaidTier(tier, sessionId) {
+  const tierInfo = nasoroVersions[tier];
+  if (!tierInfo.paid) return true; // free tiers always allowed
+  const access = paidAccess[sessionId];
+  return access && access.tier === tier && new Date() < new Date(access.expires);
 }
 
-// ===== Endpoint to handle AI messages =====
+// Endpoint to chat with Nasoro
 app.post("/ai", async (req, res) => {
+  const { message, images = [], version = "1.2 Fast", sessionId } = req.body;
+
+  if (!message && images.length === 0) {
+    return res.status(400).json({ error: "Message or image required." });
+  }
+
+  const tierInfo = nasoroVersions[version];
+  if (!tierInfo) return res.status(400).json({ error: "Invalid Nasoro version." });
+
+  if (tierInfo.paid && !isPaidTier(version, sessionId)) {
+    return res.status(402).json({
+      error: `Payment required for ${version}.`,
+      priceTRY: tierInfo.priceTRY,
+    });
+  }
+
   try {
-    const { message, images = [], version = "1.2 Fast", userId = "user1" } = req.body;
+    // Gemini API call
+    const apiRes = await fetch("https://api.generativeai.google/v1beta2/models/" + tierInfo.model + ":generateMessage", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${GEMINI_API_KEY}`,
+      },
+      body: JSON.stringify({
+        prompt: { text: message },
+        // optional: you could send images as base64 if supported
+        // images: images,
+        temperature: 0.7,
+        candidate_count: 1,
+      }),
+    });
 
-    if (!message && images.length === 0) {
-      return res.status(400).json({ error: "Message or image required." });
-    }
+    const data = await apiRes.json();
 
-    // Determine Gemini model
-    let model;
-    try {
-      model = getNasoroModel(version, userId);
-    } catch (err) {
-      return res.status(403).json({ error: err.message });
-    }
+    // Gemini returns response in different structure
+    const replyText = data?.candidates?.[0]?.content?.[0]?.text || "Gemini did not reply.";
 
-    // Combine message + image placeholders
-    let inputText = message;
-    if (images.length > 0) {
-      inputText += "\n\n[User sent " + images.length + " image(s)]";
-    }
-
-    // Call Gemini API
-    const response = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateText`,
-      {
-        method: "POST",
-        headers: {
-          "Authorization": `Bearer ${process.env.GEMINI_API_KEY}`,
-          "Content-Type": "application/json"
-        },
-        body: JSON.stringify({ input: inputText })
-      }
-    );
-
-    if (!response.ok) {
-      const text = await response.text();
-      return res.status(500).json({ error: "Gemini API error", details: text });
-    }
-
-    const data = await response.json();
-    const reply = data.candidates?.[0]?.content || "Nasoro could not respond.";
-
-    res.json({ reply });
+    res.json({ reply: replyText });
   } catch (err) {
     console.error(err);
-    res.status(500).json({ error: "Server error", details: err.message });
+    res.status(500).json({ error: "Gemini API error." });
   }
 });
 
-// ===== Endpoint to simulate payment =====
+// Endpoint to simulate payment (demo)
 app.post("/pay", (req, res) => {
-  const { userId = "user1" } = req.body;
-  if (!users[userId]) users[userId] = {};
-  users[userId].hasPaid = true;
-  res.json({ success: true, message: "Payment successful! You can now use paid tiers." });
+  const { sessionId, tier } = req.body;
+  const tierInfo = nasoroVersions[tier];
+  if (!tierInfo || !tierInfo.paid) return res.status(400).json({ error: "Invalid paid tier." });
+
+  // For demo, we just give 30 minutes access
+  paidAccess[sessionId] = { tier, expires: new Date(Date.now() + 30 * 60 * 1000) };
+  res.json({ success: true, expires: paidAccess[sessionId].expires });
 });
 
-app.listen(PORT, () => {
-  console.log(`Nasoro server running on port ${PORT}`);
-});
+app.listen(PORT, () => console.log(`Nasoro Gemini server running on port ${PORT}`));
