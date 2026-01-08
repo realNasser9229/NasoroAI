@@ -3,179 +3,262 @@ import cors from "cors";
 import dotenv from "dotenv";
 import fetch from "node-fetch";
 import cookieParser from "cookie-parser";
-import crypto from "crypto";
 import Stripe from "stripe";
+import crypto from "crypto";
 
 dotenv.config();
 
 const app = express();
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
-
 app.use(cors());
 app.use(express.json({ limit: "10mb" }));
 app.use(cookieParser());
 
-// ----------------------
-// Config
-// ----------------------
+// =====================
+// ENV
+// =====================
 const PORT = process.env.PORT || 10000;
 const GEMINI_KEY = process.env.GEMINI_API_KEY;
-if (!GEMINI_KEY) {
-  console.error("❌ Missing GEMINI_API_KEY");
+const OPENROUTER_KEY = process.env.OPENROUTER_KEY;
+const STRIPE_SECRET_KEY = process.env.STRIPE_SECRET_KEY;
+
+const PRICE_2_FAST = process.env.NASORO_2_FAST_PRICE_ID;
+const PRICE_2_PRO  = process.env.NASORO_2_PRO_PRICE_ID;
+const PRICE_2_CHAT = process.env.NASORO_2_CHAT_PRICE_ID;
+
+if (!GEMINI_KEY || !STRIPE_SECRET_KEY) {
+  console.error("❌ Missing critical env vars");
   process.exit(1);
 }
 
-// ----------------------
-// System Prompt
-// ----------------------
+const stripe = new Stripe(STRIPE_SECRET_KEY);
+
+// =====================
+// SYSTEM PROMPT
+// =====================
 const SYSTEM_PROMPT = `
-You are Nasoro AI. Chill, witty, friendly chatbot by Nas9229alt.
-Engage roleplays, help the user, deny harmful instructions.
+You are Nasoro (AI). A chill, cool multimodal chatbot created by Nas9229alt.
+Engage with roleplays, help the user, give only verified answers.
+Deny illegal instructions that can harm anyone or a group.
+Adult language allowed only with mutual consent.
+Be friendly, witty, confident, relaxed.
 `;
 
-// ----------------------
-// Tier config
-// ----------------------
+// =====================
+// NASORO MODELS
+// =====================
 const NASORO_TIERS = {
-  "1.2-fast": { model: "gemini-2.5-flash-lite", limit: 110 },
-  "1.2-pro":  { model: "gemini-2.5-pro", limit: 70 },
-  "2-fast":   { model: "gemini-3-flash-preview", limit: 50, paid: true },
-  "2-pro":    { model: "gemini-3-pro-preview", limit: 40, paid: true }
+  "Oro-1.2-fast": { model: "gemini-2.5-flash-lite", limit: 110, paid: false },
+  "Oro-1.2-pro":  { model: "gemini-2.5-pro",       limit: 70,  paid: false },
+
+  "Oro-2-fast":   { model: "gemini-3-flash-preview", limit: 50, paid: true, price: PRICE_2_FAST },
+  "Oro-2-pro":    { model: "gemini-3-pro-preview",   limit: 40, paid: true, price: PRICE_2_PRO },
+
+  // roleplay only, OpenRouter
+  "Oro-2-chat":   { model: "openrouter-chat",        limit: 50, paid: true, price: PRICE_2_CHAT }
 };
 
-// ----------------------
-// In-memory users
-// ----------------------
-const users = new Map(); // uid -> { tier: "1.2-fast"|"2-fast"|"2-pro" }
+// =====================
+// USER STORAGE (server only)
+// =====================
+const users = new Map();     // uid -> { tier }
+const usage = {};           // ip -> { tier: count }
 
-// ----------------------
-// Helpers
-// ----------------------
+// =====================
+// HELPERS
+// =====================
 function newUID() {
   return crypto.randomBytes(16).toString("hex");
 }
 
 function getUser(req, res) {
   let uid = req.cookies.nasoro_uid;
+
   if (!uid) {
     uid = newUID();
-    res.cookie("nasoro_uid", uid, { httpOnly: true, sameSite: "lax", secure: true });
-    users.set(uid, { tier: "1.2-fast" });
+    res.cookie("nasoro_uid", uid, {
+      httpOnly: true,
+      sameSite: "lax",
+      secure: true
+    });
+    users.set(uid, { tier: "Oro-1.2-fast" });
   }
-  if (!users.has(uid)) users.set(uid, { tier: "1.2-fast" });
+
+  if (!users.has(uid)) {
+    users.set(uid, { tier: "Oro-1.2-fast" });
+  }
+
   return uid;
 }
 
-// ----------------------
-// Gemini call
-// ----------------------
-async function callGemini(model, text, images = []) {
-  const parts = [{ text: SYSTEM_PROMPT }, { text }];
-  images.forEach(img => {
-    parts.push({ inline_data: { mime_type: "image/png", data: img.split(",")[1] }});
-  });
-
-  const res = await fetch(
-    `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${GEMINI_KEY}`,
-    { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ contents:[{ role:"user", parts }] }) }
-  );
-
-  const data = await res.json();
-  if (!data?.candidates?.length) throw new Error("No AI reply");
-  return data.candidates[0].content.parts[0].text;
-}
-
-// ----------------------
-// Rate limit
-// ----------------------
-const usage = {}; // ip -> { tier: count }
 function checkLimit(ip, tier) {
   if (!usage[ip]) usage[ip] = {};
   if (!usage[ip][tier]) usage[ip][tier] = 0;
+
   if (usage[ip][tier] >= NASORO_TIERS[tier].limit) return false;
   usage[ip][tier]++;
   return true;
 }
 
-// ----------------------
-// AI endpoint
-// ----------------------
+// =====================
+// AI CALLERS
+// =====================
+async function callGemini(model, text, images = []) {
+  const parts = [
+    { text: SYSTEM_PROMPT },
+    { text }
+  ];
+
+  images.forEach(img => {
+    parts.push({
+      inline_data: {
+        mime_type: "image/png",
+        data: img.split(",")[1]
+      }
+    });
+  });
+
+  const res = await fetch(
+    `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${GEMINI_KEY}`,
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        contents: [{ role: "user", parts }]
+      })
+    }
+  );
+
+  const data = await res.json();
+  if (!data?.candidates?.length) throw new Error("Gemini gave no reply");
+
+  return data.candidates[0].content.parts[0].text;
+}
+
+async function callOpenRouter(text) {
+  if (!OPENROUTER_KEY) throw new Error("Missing OpenRouter key");
+
+  const res = await fetch("https://api.openrouter.ai/v1/chat/completions", {
+    method: "POST",
+    headers: {
+      "Authorization": `Bearer ${OPENROUTER_KEY}`,
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify({
+      model: "openrouter/auto",
+      messages: [{ role: "user", content: text }]
+    })
+  });
+
+  const data = await res.json();
+  return data.choices?.[0]?.message?.content || "No reply from Oro Chat";
+}
+
+// =====================
+// MAIN AI ENDPOINT
+// =====================
 app.post("/ai", async (req, res) => {
   try {
-    const { message, images = [], tier = "1.2-fast" } = req.body;
-    const uid = getUser(req, res);
-    const userTier = users.get(uid).tier;
+    const { message, images = [], tier = "Oro-1.2-fast" } = req.body;
 
-    // Paid tier enforcement
-    if (NASORO_TIERS[tier].paid && userTier !== tier) {
-      return res.json({ reply: "Upgrade required for this tier." });
+    if (!NASORO_TIERS[tier]) {
+      return res.json({ reply: "Invalid Nasoro model." });
     }
 
-    if (!message && images.length === 0) return res.json({ reply: "Say something to Nasoro." });
+    if (!message && images.length === 0) {
+      return res.json({ reply: "Say something to Nasoro." });
+    }
 
-    const ip = req.headers["x-forwarded-for"]?.split(",")[0] || req.socket.remoteAddress;
-    if (!checkLimit(ip, tier)) return res.json({ reply: "Daily limit reached for this tier." });
+    const uid = getUser(req, res);
+    const user = users.get(uid);
 
-    const reply = await callGemini(NASORO_TIERS[tier].model, message, images);
-    res.json({ reply, tier: userTier });
+    // payment lock
+    if (NASORO_TIERS[tier].paid && user.tier !== tier) {
+      return res.json({ reply: "This model requires an active plan." });
+    }
+
+    const ip =
+      req.headers["x-forwarded-for"]?.split(",")[0] ||
+      req.socket.remoteAddress;
+
+    if (!checkLimit(ip, tier)) {
+      return res.json({ reply: "Daily limit reached for this model." });
+    }
+
+    let reply;
+
+    if (NASORO_TIERS[tier].model === "openrouter-chat") {
+      reply = await callOpenRouter(message);
+    } else {
+      reply = await callGemini(NASORO_TIERS[tier].model, message, images);
+    }
+
+    res.json({ reply });
   } catch (err) {
-    console.error(err);
+    console.error("NASORO ERROR:", err);
     res.json({ reply: "Server error. Nasoro tripped over a wire." });
   }
 });
 
-// ----------------------
-// Stripe checkout
-// ----------------------
+// =====================
+// STRIPE CHECKOUT
+// =====================
 app.post("/create-checkout", async (req, res) => {
   try {
-    const uid = getUser(req, res);
     const { tier } = req.body;
+    const config = NASORO_TIERS[tier];
 
-    if (!["2-fast","2-pro"].includes(tier)) return res.status(400).json({ error: "Invalid tier" });
-
-    const priceId = tier === "2-fast" 
-      ? process.env.NASORO_2_FAST_PRICE_ID 
-      : process.env.NASORO_2_PRO_PRICE_ID;
+    if (!config || !config.paid || !config.price) {
+      return res.json({ error: "Invalid tier" });
+    }
 
     const session = await stripe.checkout.sessions.create({
-      mode: "payment",
-      line_items: [{ price: priceId, quantity: 1 }],
-      success_url: `${req.headers.origin}/success?tier=${tier}`,
-      cancel_url: `${req.headers.origin}/cancel`,
-      metadata: { uid, tier }
+      mode: "subscription",
+      payment_method_types: ["card"],
+      line_items: [
+        {
+          price: config.price,
+          quantity: 1
+        }
+      ],
+      success_url: "https://your-site.com/success",
+      cancel_url: "https://your-site.com/cancel",
+      metadata: { tier }
     });
 
     res.json({ url: session.url });
   } catch (err) {
-    console.error(err);
-    res.status(500).json({ error: "Stripe session failed" });
+    console.error("STRIPE ERROR:", err);
+    res.json({ error: "Payment init failed" });
   }
 });
 
-// ----------------------
-// Stripe webhook
-// ----------------------
-app.post("/webhook", express.raw({ type: "application/json" }), (req, res) => {
-  const sig = req.headers["stripe-signature"];
-  let event;
+// =====================
+// STRIPE WEBHOOK
+// =====================
+app.post("/stripe-webhook", express.raw({ type: "application/json" }), (req, res) => {
+  let event = req.body;
 
   try {
-    event = stripe.webhooks.constructEvent(req.body, sig, process.env.STRIPE_WEBHOOK_SECRET);
-  } catch (err) {
-    console.error("Webhook signature error", err.message);
-    return res.status(400).send("Webhook error");
-  }
+    if (event.type === "checkout.session.completed") {
+      const session = event.data.object;
+      const tier = session.metadata.tier;
 
-  if (event.type === "checkout.session.completed") {
-    const session = event.data.object;
-    const { uid, tier } = session.metadata;
-    if (users.has(uid)) users.get(uid).tier = tier;
+      // grant user tier (cookie based users won’t match here,
+      // this is for real accounts later)
+      console.log("Payment completed for", tier);
+    }
+  } catch (err) {
+    console.error("Webhook error", err);
   }
 
   res.json({ received: true });
 });
 
-// ----------------------
-app.get("/ping", (req, res) => res.send("Nasoro backend alive."));
-app.listen(PORT, () => console.log(`Nasoro server running on port ${PORT}`));
+// =====================
+app.get("/ping", (req, res) => {
+  res.send("Nasoro backend alive.");
+});
+
+app.listen(PORT, () => {
+  console.log("🔥 Nasoro running on port", PORT);
+});
