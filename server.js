@@ -1,8 +1,8 @@
 import express from "express";
 import cors from "cors";
-import dotenv from "dotenv";
-import fetch from "node-fetch"; // npm i node-fetch@2
 import bodyParser from "body-parser";
+import fetch from "node-fetch";
+import dotenv from "dotenv";
 
 dotenv.config();
 const app = express();
@@ -11,98 +11,90 @@ app.use(bodyParser.json({ limit: "25mb" }));
 
 const PORT = process.env.PORT || 3000;
 
+// ---------- NASORO VERSION SETTINGS ----------
 const NASORO_VERSIONS = {
-  // OpenAI Tiers
   "1.5": { provider: "openai", model: "gpt-3.5-turbo" },
-  "2": { provider: "openai", model: "gpt-4o-mini" },
-  "3.5": { provider: "openai", model: "gpt-5-mini" },
-  "4": { provider: "openai", model: "gpt-5.2-chat-latest" },
-  "4.5": { provider: "openai", model: "gpt-5.2-pro" },
-
-  // Gemini Tiers
-  "G-1": { provider: "gemini", model: "gemini-2.5-flash-lite" },
-  "G-2": { provider: "gemini", model: "gemini-2.5-flash" },
-  "G-3": { provider: "gemini", model: "gemini-2.5-pro" },
-  "G-4": { provider: "gemini", model: "gemini-3-flash-preview" },
-  "G-5": { provider: "gemini", model: "gemini-3-pro-preview" }
+  "2":   { provider: "openai", model: "gpt-4o-mini" },
+  // Add more versions here safely later
 };
 
-// Helper to call OpenAI chat models
+// ---------- HELPER FUNCTIONS ----------
+
 async function callOpenAI(message, model, images = []) {
-  const payload = {
-    model,
-    messages: [{ role: "user", content: message }],
-    temperature: 0.7
-  };
-
-  if (images.length > 0) {
-    payload.messages.push({
-      role: "user",
-      content: `User uploaded images: ${images.join(", ")}`
+  const prompt = `You are Nasoro AI. User sent: ${message}. Images: ${images.length}`;
+  try {
+    const res = await fetch("https://api.openai.com/v1/chat/completions", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${process.env.OPENAI_API_KEY}`
+      },
+      body: JSON.stringify({
+        model,
+        messages: [{ role: "user", content: prompt }],
+      }),
     });
+    const data = await res.json();
+    if (data.error) throw new Error(data.error.message);
+    return data.choices?.[0]?.message?.content || "No reply from OpenAI";
+  } catch (err) {
+    console.error("OpenAI Error:", err.message);
+    return "OpenAI provider failed. Try again later.";
   }
-
-  const res = await fetch("https://api.openai.com/v1/chat/completions", {
-    method: "POST",
-    headers: {
-      "Authorization": `Bearer ${process.env.OPENAI_API_KEY}`,
-      "Content-Type": "application/json"
-    },
-    body: JSON.stringify(payload)
-  });
-
-  const data = await res.json();
-  return data.choices?.[0]?.message?.content || "No response from OpenAI.";
 }
 
-// Helper to call Gemini models
 async function callGemini(message, model, images = []) {
-  const payload = {
-    model,
-    input: message
-  };
-
-  if (images.length > 0) {
-    payload.input += `\nUser uploaded images: ${images.join(", ")}`;
+  if (!process.env.GEMINI_API_KEY) return "Gemini provider not configured.";
+  // Placeholder example, adapt to actual Gemini endpoint
+  try {
+    const res = await fetch("https://gemini.googleapis.com/v1/models/text:predict", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${process.env.GEMINI_API_KEY}`
+      },
+      body: JSON.stringify({
+        model,
+        prompt: message,
+        images
+      }),
+    });
+    const data = await res.json();
+    return data?.prediction || "Gemini replied nothing";
+  } catch (err) {
+    console.error("Gemini Error:", err.message);
+    return "Gemini provider failed. Try again later.";
   }
-
-  const res = await fetch("https://gemini.googleapis.com/v1/models/text:predict", {
-    method: "POST",
-    headers: {
-      "Authorization": `Bearer ${process.env.GEMINI_API_KEY}`,
-      "Content-Type": "application/json"
-    },
-    body: JSON.stringify(payload)
-  });
-
-  const data = await res.json();
-  return data?.candidates?.[0]?.content?.[0]?.text || "No response from Gemini.";
 }
+
+// ---------- ROUTES ----------
+app.get("/", (req, res) => res.send("Nasoro AI Server is running."));
 
 app.post("/ai", async (req, res) => {
+  const { message, images = [], version = "1.5", provider } = req.body;
+
+  if (!message && images.length === 0) return res.json({ reply: "No input provided." });
+
+  const v = NASORO_VERSIONS[version] || { provider: "openai", model: "gpt-3.5-turbo" };
+
+  let reply = "No reply.";
   try {
-    const { message, version = "1.5", images = [] } = req.body;
-
-    if (!message && images.length === 0) {
-      return res.status(400).json({ reply: "Message or images required." });
-    }
-
-    const v = NASORO_VERSIONS[version] || NASORO_VERSIONS["1.5"];
-    let reply;
-
     if (v.provider === "openai") {
       reply = await callOpenAI(message, v.model, images);
     } else if (v.provider === "gemini") {
       reply = await callGemini(message, v.model, images);
     } else {
-      reply = "No valid provider selected.";
+      reply = "Invalid provider.";
     }
-
-    res.json({ reply });
   } catch (err) {
-    console.error(err);
-    res.status(500).json({ reply: "Server error. Please try again later." });
+    console.error("Server Error:", err.message);
+    reply = "Server encountered an error. Try again later.";
   }
+
+  res.json({ reply });
 });
 
-app.listen(PORT, () => console.log(`Nasoro server running on port ${PORT}`));
+// ---------- START SERVER ----------
+app.listen(PORT, () => {
+  console.log(`Nasoro AI server running on port ${PORT}`);
+});
