@@ -4,46 +4,44 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Nasoro AI</title>
-
 <script src="https://cdn.tailwindcss.com"></script>
 <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.7.0/styles/tokyo-night-dark.min.css">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.7.0/highlight.min.js"></script>
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-
 <style>
-body{margin:0;font-family:sans-serif;background:#050505;color:white;height:100vh;display:flex;overflow:hidden;}
-#sidebar{width:280px;background:rgba(10,10,10,0.95);backdrop-filter:blur(30px);padding:1rem;overflow-y:auto;}
-#main{flex:1;display:flex;flex-direction:column;}
-header{background:rgba(5,5,5,0.8);backdrop-filter:blur(20px);padding:1rem;display:flex;justify-content:space-between;align-items:center;}
-#chat-container{flex:1;overflow-y:auto;padding:1rem;}
-textarea{width:100%;resize:none;padding:.5rem;background:#0f0f0f;color:white;border:none;border-radius:12px;}
-button{padding:.5rem 1rem;border:none;border-radius:12px;background:#2f80ed;color:white;cursor:pointer;}
-.model-btn{display:flex;justify-content:space-between;padding:.5rem .75rem;margin:.25rem 0;background:#1f1f1f;border-radius:12px;cursor:pointer;}
-.model-btn:hover{background:#2f2f2f;}
+body { margin:0; font-family:'Space Grotesk',sans-serif; background:#050505; color:white; overflow:hidden; height:100vh; }
+#sidebar { width:280px; background:rgba(10,10,10,0.95); backdrop-filter:blur(30px); position:fixed; left:0; top:0; bottom:0; transform:translateX(-100%); transition:0.3s; display:flex; flex-direction:column; padding:1.5rem; border-right:1px solid rgba(255,255,255,0.05); }
+.sidebar-active { transform:translateX(0); }
+#overlay { position:fixed; inset:0; background:rgba(0,0,0,0.8); display:none; z-index:999; }
+.overlay-visible { display:block; }
+#chat-container { flex:1; overflow-y:auto; padding:1.5rem; margin-left:280px; }
+textarea { width:100%; background:transparent; color:white; border:none; resize:none; outline:none; }
+.msg { margin-bottom:1rem; }
+.msg-user { text-align:right; }
+.msg-nasoro { text-align:left; }
 </style>
 </head>
-<body>
+<body class="flex">
 
-<div id="sidebar">
-  <h2 class="text-xl font-bold mb-4">Nasoro AI</h2>
-  <div id="model-list"></div>
-</div>
+<div id="overlay" onclick="closeSidebar()"></div>
 
-<div id="main">
-<header>
-  <span>Nasoro</span>
-</header>
+<aside id="sidebar">
+<h1 class="text-xl font-bold mb-4">Nasoro AI</h1>
+<div id="model-list" class="flex flex-col gap-2"></div>
+<button onclick="location.reload()" class="mt-auto bg-white text-black rounded px-4 py-2">New Chat</button>
+</aside>
 
-<div id="chat-container">
-  <p class="text-zinc-500">How can I help you?</p>
-</div>
+<main style="flex:1; display:flex; flex-direction:column;">
+<header style="padding:1rem; background:rgba(5,5,5,0.8); backdrop-filter:blur(20px); position:sticky; top:0; z-index:100;">Nasoro AI</header>
 
-<div style="padding:1rem;display:flex;gap:.5rem;align-items:flex-end;">
-  <textarea id="chat-field" rows="1" placeholder="Talk with Nasoro..."></textarea>
-  <button id="send-btn"><i class="fa-solid fa-arrow-up"></i></button>
+<div id="chat-container"></div>
+
+<div style="padding:1rem; display:flex; gap:0.5rem; background:rgba(15,15,15,0.9); position:sticky; bottom:0;">
+<textarea id="chat-field" rows="1" placeholder="Talk with Nasoro..."></textarea>
+<button id="send-action" style="background:white; color:black; padding:0 1rem;">Send</button>
 </div>
-</div>
+</main>
 
 <script>
 const NASORO_TIERS = [
@@ -53,53 +51,50 @@ const NASORO_TIERS = [
   { name:"2 Pro", tier:"Oro-2-pro" },
   { name:"2 Chat Oro", tier:"Oro-2-chat" }
 ];
-
 let selectedTier = NASORO_TIERS[0].tier;
 
-const modelList = document.getElementById('model-list');
-NASORO_TIERS.forEach(m => {
-  const div = document.createElement('div');
-  div.className = 'model-btn';
-  div.textContent = m.name;
-  div.onclick = () => selectedTier = m.tier;
-  modelList.appendChild(div);
-});
+const sidebar=document.getElementById('sidebar');
+const overlay=document.getElementById('overlay');
+const chatContainer=document.getElementById('chat-container');
+const chatField=document.getElementById('chat-field');
+const sendAction=document.getElementById('send-action');
 
-const chatContainer = document.getElementById('chat-container');
-const chatField = document.getElementById('chat-field');
-const sendBtn = document.getElementById('send-btn');
+function openSidebar(){sidebar.classList.add('sidebar-active'); overlay.classList.add('overlay-visible');}
+function closeSidebar(){sidebar.classList.remove('sidebar-active'); overlay.classList.remove('overlay-visible');}
 
-function postMessage(msg, role='user') {
-  const div = document.createElement('div');
-  div.style.margin = '0.5rem 0';
-  div.innerHTML = `<strong>${role==='nasoro'?'Nasoro':'You'}:</strong> ${msg}`;
+function renderModels(){
+  const container=document.getElementById("model-list");
+  container.innerHTML = NASORO_TIERS.map(m=>{
+    return `<div onclick="selectTier('${m.tier}')" style="padding:0.5rem; cursor:pointer; border-radius:0.5rem; background:rgba(255,255,255,0.05);">${m.name}</div>`;
+  }).join('');
+}
+renderModels();
+function selectTier(tier){selectedTier=tier;}
+
+function postMessage(content, role){
+  const div=document.createElement('div');
+  div.className='msg '+(role==='nasoro'?'msg-nasoro':'msg-user');
+  div.innerHTML=content.replace(/\n/g,'<br>');
   chatContainer.appendChild(div);
-  chatContainer.scrollTop = chatContainer.scrollHeight;
+  chatContainer.scrollTop=chatContainer.scrollHeight;
 }
 
-async function sendMessage() {
-  const msg = chatField.value.trim();
+async function handleSend(){
+  const msg=chatField.value.trim();
   if(!msg) return;
   postMessage(msg,'user');
   chatField.value='';
-  try {
-    const res = await fetch('/ai', {
-      method:'POST',
-      headers:{'Content-Type':'application/json'},
-      body: JSON.stringify({ message: msg, tier: selectedTier, system_prompt:"You are Nasoro AI. A chill multimodal AI made by Nas9229alt." })
-    });
+  try{
+    const res = await fetch("/ai", { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({message:msg, tier:selectedTier})});
     const data = await res.json();
-    postMessage(data.reply || "Thinking...",'nasoro');
-  } catch(e) {
-    postMessage("Error connecting to backend.",'nasoro');
+    postMessage(data.reply || "Thinking...", 'nasoro');
+  }catch{
+    postMessage("Sync failed. Check backend connection.", 'nasoro');
   }
 }
 
-sendBtn.addEventListener('click', sendMessage);
-chatField.addEventListener('keydown', e => {
-  if(e.key === 'Enter' && !e.shiftKey){ e.preventDefault(); sendMessage(); }
-});
+sendAction.addEventListener('click', handleSend);
+chatField.addEventListener('keydown', e=>{if(e.key==='Enter'&&!e.shiftKey){e.preventDefault(); handleSend();}});
 </script>
-
 </body>
 </html>
