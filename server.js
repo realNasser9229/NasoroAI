@@ -3,6 +3,7 @@ import cors from "cors";
 import dotenv from "dotenv";
 import fetch from "node-fetch";
 import cookieParser from "cookie-parser";
+import crypto from "crypto";
 import Stripe from "stripe";
 
 dotenv.config();
@@ -17,7 +18,7 @@ app.use(cookieParser());
 // ----------------------
 // Config
 // ----------------------
-const PORT = process.env.PORT || 3000;
+const PORT = process.env.PORT || 10000;
 const GEMINI_KEY = process.env.GEMINI_API_KEY;
 if (!GEMINI_KEY) {
   console.error("❌ Missing GEMINI_API_KEY");
@@ -45,7 +46,7 @@ const NASORO_TIERS = {
 // ----------------------
 // In-memory users
 // ----------------------
-const users = new Map(); // uid -> { tier: "free"|"2-fast"|"2-pro" }
+const users = new Map(); // uid -> { tier: "1.2-fast"|"2-fast"|"2-pro" }
 
 // ----------------------
 // Helpers
@@ -68,7 +69,7 @@ function getUser(req, res) {
 // ----------------------
 // Gemini call
 // ----------------------
-async function callGemini(model, text, images=[]) {
+async function callGemini(model, text, images = []) {
   const parts = [{ text: SYSTEM_PROMPT }, { text }];
   images.forEach(img => {
     parts.push({ inline_data: { mime_type: "image/png", data: img.split(",")[1] }});
@@ -101,11 +102,11 @@ function checkLimit(ip, tier) {
 // ----------------------
 app.post("/ai", async (req, res) => {
   try {
-    const { message, images=[], tier="1.2-fast" } = req.body;
+    const { message, images = [], tier = "1.2-fast" } = req.body;
     const uid = getUser(req, res);
     const userTier = users.get(uid).tier;
 
-    // Enforce paid tiers
+    // Paid tier enforcement
     if (NASORO_TIERS[tier].paid && userTier !== tier) {
       return res.json({ reply: "Upgrade required for this tier." });
     }
@@ -127,22 +128,29 @@ app.post("/ai", async (req, res) => {
 // Stripe checkout
 // ----------------------
 app.post("/create-checkout", async (req, res) => {
-  const uid = getUser(req, res);
-  const { tier } = req.body;
+  try {
+    const uid = getUser(req, res);
+    const { tier } = req.body;
 
-  if (!["2-fast","2-pro"].includes(tier)) return res.status(400).json({ error: "Invalid tier" });
+    if (!["2-fast","2-pro"].includes(tier)) return res.status(400).json({ error: "Invalid tier" });
 
-  const priceId = tier === "2-fast" ? process.env.STRIPE_PRICE_FAST : process.env.STRIPE_PRICE_PRO;
+    const priceId = tier === "2-fast" 
+      ? process.env.NASORO_2_FAST_PRICE_ID 
+      : process.env.NASORO_2_PRO_PRICE_ID;
 
-  const session = await stripe.checkout.sessions.create({
-    mode: "payment",
-    line_items: [{ price: priceId, quantity: 1 }],
-    success_url: "https://your-site.com/success",
-    cancel_url: "https://your-site.com/cancel",
-    metadata: { uid, tier }
-  });
+    const session = await stripe.checkout.sessions.create({
+      mode: "payment",
+      line_items: [{ price: priceId, quantity: 1 }],
+      success_url: `${req.headers.origin}/success?tier=${tier}`,
+      cancel_url: `${req.headers.origin}/cancel`,
+      metadata: { uid, tier }
+    });
 
-  res.json({ url: session.url });
+    res.json({ url: session.url });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Stripe session failed" });
+  }
 });
 
 // ----------------------
@@ -154,7 +162,10 @@ app.post("/webhook", express.raw({ type: "application/json" }), (req, res) => {
 
   try {
     event = stripe.webhooks.constructEvent(req.body, sig, process.env.STRIPE_WEBHOOK_SECRET);
-  } catch { return res.status(400).send("Webhook error"); }
+  } catch (err) {
+    console.error("Webhook signature error", err.message);
+    return res.status(400).send("Webhook error");
+  }
 
   if (event.type === "checkout.session.completed") {
     const session = event.data.object;
@@ -167,4 +178,4 @@ app.post("/webhook", express.raw({ type: "application/json" }), (req, res) => {
 
 // ----------------------
 app.get("/ping", (req, res) => res.send("Nasoro backend alive."));
-app.listen(PORT, () => console.log("Nasoro server running on port", PORT));
+app.listen(PORT, () => console.log(`Nasoro server running on port ${PORT}`));
