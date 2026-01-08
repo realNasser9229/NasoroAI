@@ -267,15 +267,18 @@ chatField.addEventListener('keydown', e => { if(e.key==='Enter' && !e.shiftKey){
 // ========== Payments ==========
 async function buyTier(tier){
   try {
-    const res = await fetch("/create-checkout",{
-      method:"POST",
-      headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({tier})
+    const res = await fetch("/create-checkout", {
+      method: "POST",
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ tier })
     });
     const data = await res.json();
-    if(data.url) window.open(data.url,"_blank");
-    else alert("Payment not available");
-  } catch(e){ alert("Payment failed"); }
+    if (data.url) window.open(data.url, "_blank");
+    else alert(data.error || "Payment not available");
+  } catch (e) {
+    alert("Payment failed");
+    console.error(e);
+  }
 }
 </script>
 
