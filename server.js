@@ -14,10 +14,10 @@ app.use(express.json({ limit: "10mb" }));
 // =====================
 const PORT = process.env.PORT || 3000;
 const GEMINI_KEY = process.env.GEMINI_API_KEY;
-const OWNER_KEY = process.env.OWNER_KEY;
+const OWNER_KEY = process.env.OWNER_KEY; // server-side only
 
 // =====================
-// NASORO SYSTEM PROMPT
+// SYSTEM PROMPT
 // =====================
 const SYSTEM_PROMPT = `
 You are Nasoro (AI). A chill, cool multimodal chatbot created by Nas9229alt.
@@ -31,30 +31,63 @@ Be friendly, witty, confident, and relaxed.
 // NASORO TIERS
 // =====================
 const NASORO_TIERS = {
-  "1.2-fast": { model: "gemini-2.5-flash-lite", limit: 110, paid: false, price: 0 },
-  "1.2-pro": { model: "gemini-2.5-pro", limit: 70, paid: false, price: 0 },
-  "2-fast":   { model: "gemini-3-flash-preview", limit: 50, paid: true, price: 49.99 }, // TRY
-  "2-pro":    { model: "gemini-3-pro-preview", limit: 40, paid: true, price: 209.99 }  // TRY
+  "1.2-fast": { model: "gemini-2.5-flash-lite", limit: 110, paid: false },
+  "1.2-pro": { model: "gemini-2.5-pro", limit: 70, paid: false },
+  "2-fast": { model: "gemini-3-flash-preview", limit: 50, paid: true },
+  "2-pro": { model: "gemini-3-pro-preview", limit: 40, paid: true }
 };
 
 // =====================
-// SIMPLE IN-MEMORY USAGE & SUBSCRIPTIONS
+// SIMPLE IN-MEMORY USAGE & PAYMENTS
 // =====================
-const usage = {}; // { ip: { tier: count } }
-const subscriptions = {}; // { ip: { tier: true/false } }
+const usage = {};        // { ip: { tier: count } }
+const paidUsers = {};    // { ip: [tiers paid] }
+
+// =====================
+// HELPER FUNCTIONS
+// =====================
+function getIP(req) {
+  return req.headers["x-forwarded-for"] || req.socket.remoteAddress;
+}
+
+function isOwner(req) {
+  // owner bypass via secret key sent internally
+  return req.headers["x-owner-key"] === OWNER_KEY;
+}
+
+function checkLimit(ip, tier, owner) {
+  if (owner) return true;
+
+  if (!usage[ip]) usage[ip] = {};
+  if (!usage[ip][tier]) usage[ip][tier] = 0;
+
+  if (usage[ip][tier] >= NASORO_TIERS[tier].limit) return false;
+
+  usage[ip][tier]++;
+  return true;
+}
+
+function canAccessTier(ip, tier, owner) {
+  if (owner) return true;
+
+  if (NASORO_TIERS[tier].paid) {
+    return paidUsers[ip]?.includes(tier) || false;
+  }
+  return true;
+}
 
 // =====================
 // GEMINI CALL
 // =====================
 async function callGemini(model, text, images = []) {
-  const parts = [
-    { text: SYSTEM_PROMPT },
-    { text }
-  ];
+  const parts = [{ text: SYSTEM_PROMPT }, { text }];
 
   images.forEach(img => {
     parts.push({
-      inline_data: { mime_type: "image/png", data: img.split(",")[1] }
+      inline_data: {
+        mime_type: "image/png",
+        data: img.split(",")[1]
+      }
     });
   });
 
@@ -63,64 +96,44 @@ async function callGemini(model, text, images = []) {
     {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ contents: [{ role: "user", parts }] })
+      body: JSON.stringify({
+        contents: [{ role: "user", parts }]
+      })
     }
   );
 
   const data = await res.json();
+
   if (!data?.candidates?.length) throw new Error("AI gave no response");
   return data.candidates[0].content.parts[0].text;
 }
 
 // =====================
-// RATE LIMIT CHECK
-// =====================
-function checkLimit(ip, tier, isOwner) {
-  if (isOwner) return true;
-
-  if (!usage[ip]) usage[ip] = {};
-  if (!usage[ip][tier]) usage[ip][tier] = 0;
-
-  const limit = NASORO_TIERS[tier].limit;
-  if (usage[ip][tier] >= limit) return false;
-
-  usage[ip][tier]++;
-  return true;
-}
-
-// =====================
-// PAYMENT CHECK
-// =====================
-function hasPaid(ip, tier) {
-  if (!NASORO_TIERS[tier].paid) return true; // Free tier
-  if (!subscriptions[ip]) return false;
-  return subscriptions[ip][tier] === true;
-}
-
-// =====================
-// AI ENDPOINT
+// MAIN AI ENDPOINT
 // =====================
 app.post("/ai", async (req, res) => {
   try {
-    const { message, images = [], tier = "1.2-fast", ownerKey } = req.body;
+    const { message, images = [], tier = "1.2-fast" } = req.body;
+    if (!message && images.length === 0) return res.json({ reply: "Say something to Nasoro." });
 
-    if (!message && images.length === 0)
-      return res.json({ reply: "Say something to Nasoro." });
+    if (!NASORO_TIERS[tier]) return res.json({ reply: "Invalid Nasoro tier." });
 
-    const isOwner = ownerKey === OWNER_KEY;
-    const ip = req.headers["x-forwarded-for"] || req.socket.remoteAddress;
+    const ip = getIP(req);
+    const owner = isOwner(req);
 
-    if (!NASORO_TIERS[tier]) return res.json({ reply: "Invalid Nasoro model selected." });
-    if (!hasPaid(ip, tier) && !isOwner)
-      return res.json({ reply: `This tier requires payment. Please buy access.` });
+    // check paid tier access
+    if (!canAccessTier(ip, tier, owner)) {
+      return res.json({ reply: "This is a paid tier. Please subscribe to access." });
+    }
 
-    const allowed = checkLimit(ip, tier, isOwner);
-    if (!allowed) return res.json({ reply: "Daily limit reached for this Nasoro model." });
+    // check usage limits
+    if (!checkLimit(ip, tier, owner)) {
+      return res.json({ reply: "Daily limit reached for this Nasoro tier." });
+    }
 
-    const model = NASORO_TIERS[tier].model;
-    const reply = await callGemini(model, message, images);
-
+    const reply = await callGemini(NASORO_TIERS[tier].model, message, images);
     res.json({ reply });
+
   } catch (err) {
     console.error("NASORO ERROR:", err.message);
     res.json({ reply: "Server error. Nasoro tripped over a wire." });
@@ -128,30 +141,21 @@ app.post("/ai", async (req, res) => {
 });
 
 // =====================
-// PAYMENT ENDPOINT (SIMULATED GOOGLE PAY)
+// SIMPLE PAYMENT SIMULATION
 // =====================
-app.post("/buy", (req, res) => {
+app.post("/pay", (req, res) => {
   const { tier } = req.body;
-  const ip = req.headers["x-forwarded-for"] || req.socket.remoteAddress;
+  const ip = getIP(req);
+  const owner = isOwner(req);
+  if (owner) return res.json({ success: true, msg: "Owner bypass" });
 
-  if (!NASORO_TIERS[tier]) return res.json({ success: false, msg: "Invalid tier" });
-  if (!NASORO_TIERS[tier].paid) return res.json({ success: false, msg: "This tier is free" });
+  if (!NASORO_TIERS[tier] || !NASORO_TIERS[tier].paid)
+    return res.json({ success: false, msg: "Invalid paid tier" });
 
-  // Simulate payment process
-  // In real integration, return Google Pay paymentDataRequest
-  return res.json({ success: true, price: NASORO_TIERS[tier].price });
-});
+  if (!paidUsers[ip]) paidUsers[ip] = [];
+  paidUsers[ip].push(tier);
 
-app.post("/confirm", (req, res) => {
-  const { tier, token } = req.body; // token from Google Pay
-  const ip = req.headers["x-forwarded-for"] || req.socket.remoteAddress;
-
-  // TODO: verify payment token with Google Pay backend
-  // For now, simulate success:
-  if (!subscriptions[ip]) subscriptions[ip] = {};
-  subscriptions[ip][tier] = true;
-
-  res.json({ success: true, msg: `Paid for ${tier} successfully.` });
+  res.json({ success: true, msg: `Payment registered for tier ${tier}` });
 });
 
 // =====================
