@@ -1,86 +1,108 @@
 import express from "express";
 import cors from "cors";
 import dotenv from "dotenv";
-import fetch from "node-fetch"; // for OpenAI/Gemini requests
-import Stripe from "stripe";
+import fetch from "node-fetch"; // npm i node-fetch@2
+import bodyParser from "body-parser";
 
 dotenv.config();
 const app = express();
 app.use(cors());
-app.use(express.json({limit:'10mb'}));
-app.use(express.static('public')); // serve index.html
+app.use(bodyParser.json({ limit: "25mb" }));
 
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
+const PORT = process.env.PORT || 3000;
 
-// USERS & TIER SYSTEM (demo in memory)
-let userUsage = {}; 
+const NASORO_VERSIONS = {
+  // OpenAI Tiers
+  "1.5": { provider: "openai", model: "gpt-3.5-turbo" },
+  "2": { provider: "openai", model: "gpt-4o-mini" },
+  "3.5": { provider: "openai", model: "gpt-5-mini" },
+  "4": { provider: "openai", model: "gpt-5.2-chat-latest" },
+  "4.5": { provider: "openai", model: "gpt-5.2-pro" },
 
-const nasoroVersions = {
-  "1.5": { openai: "gpt-3.5-turbo", gemini: "gemini-2" },
-  "2": { openai: "gpt-4o-mini", gemini: "gemini-3" },
-  "2.5": { openai: "gpt-4.1-mini", gemini: "gemini-3-pro" },
-  "3": { openai: "o3-nano", gemini: "gemini-4" },
-  "3.5": { openai: "gpt-5-mini", gemini: "gemini-4-pro" },
-  "4": { openai: "gpt-5.2-chat-latest", gemini: "gemini-5" },
-  "4.5": { openai: "gpt-5.2-pro", gemini: "gemini-5-pro" }
+  // Gemini Tiers
+  "G-1": { provider: "gemini", model: "gemini-2.5-flash-lite" },
+  "G-2": { provider: "gemini", model: "gemini-2.5-flash" },
+  "G-3": { provider: "gemini", model: "gemini-2.5-pro" },
+  "G-4": { provider: "gemini", model: "gemini-3-flash-preview" },
+  "G-5": { provider: "gemini", model: "gemini-3-pro-preview" }
 };
 
-function getUserTier(userId){ 
-  return userUsage[userId]?.tier || "3.5"; 
+// Helper to call OpenAI chat models
+async function callOpenAI(message, model, images = []) {
+  const payload = {
+    model,
+    messages: [{ role: "user", content: message }],
+    temperature: 0.7
+  };
+
+  if (images.length > 0) {
+    payload.messages.push({
+      role: "user",
+      content: `User uploaded images: ${images.join(", ")}`
+    });
+  }
+
+  const res = await fetch("https://api.openai.com/v1/chat/completions", {
+    method: "POST",
+    headers: {
+      "Authorization": `Bearer ${process.env.OPENAI_API_KEY}`,
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify(payload)
+  });
+
+  const data = await res.json();
+  return data.choices?.[0]?.message?.content || "No response from OpenAI.";
 }
 
-// AI ENDPOINT
-app.post("/ai", async (req,res)=>{
-  const {message, images, userId} = req.body;
-  const tier = getUserTier(userId);
-  const model = nasoroVersions[tier].openai;
+// Helper to call Gemini models
+async function callGemini(message, model, images = []) {
+  const payload = {
+    model,
+    input: message
+  };
 
-  // construct system prompt
-  let prompt = `You are Nasoro AI (${tier}). User sent: "${message}"`;
-  if(images?.length) prompt += `\nUser also sent ${images.length} images.`;
+  if (images.length > 0) {
+    payload.input += `\nUser uploaded images: ${images.join(", ")}`;
+  }
 
-  try{
-    const aiRes = await fetch("https://api.openai.com/v1/chat/completions",{
-      method:"POST",
-      headers:{
-        "Content-Type":"application/json",
-        "Authorization":`Bearer ${process.env.OPENAI_API_KEY}`
-      },
-      body:JSON.stringify({
-        model,
-        messages:[{role:"system",content:prompt},{role:"user",content:message}],
-        max_tokens:500
-      })
-    });
-    const aiData = await aiRes.json();
-    res.json({reply:aiData.choices?.[0]?.message?.content||"Thinking...",images});
-  }catch(err){ res.status(500).json({error:err.message}); }
-});
-
-// CREATE STRIPE PAYMENT
-app.post("/create-payment-session", async(req,res)=>{
-  const {userId,tier}=req.body;
-  if(!userId||!tier) return res.status(400).json({error:"Missing userId/tier"});
-  const priceMap={"4.5":1999,"4":999};
-  const session = await stripe.checkout.sessions.create({
-    payment_method_types:['card'],
-    line_items:[{
-      price_data:{
-        currency:'usd',
-        product_data:{name:`Nasoro Tier ${tier} Unlock`},
-        unit_amount:priceMap[tier]
-      },
-      quantity:1
-    }],
-    mode:'payment',
-    success_url:`${process.env.FRONTEND_URL}/payment-success?userId=${userId}&tier=${tier}`,
-    cancel_url:`${process.env.FRONTEND_URL}/payment-cancel`,
-    client_reference_id:userId,
-    metadata:{tier}
+  const res = await fetch("https://gemini.googleapis.com/v1/models/text:predict", {
+    method: "POST",
+    headers: {
+      "Authorization": `Bearer ${process.env.GEMINI_API_KEY}`,
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify(payload)
   });
-  res.json({url:session.url});
+
+  const data = await res.json();
+  return data?.candidates?.[0]?.content?.[0]?.text || "No response from Gemini.";
+}
+
+app.post("/ai", async (req, res) => {
+  try {
+    const { message, version = "1.5", images = [] } = req.body;
+
+    if (!message && images.length === 0) {
+      return res.status(400).json({ reply: "Message or images required." });
+    }
+
+    const v = NASORO_VERSIONS[version] || NASORO_VERSIONS["1.5"];
+    let reply;
+
+    if (v.provider === "openai") {
+      reply = await callOpenAI(message, v.model, images);
+    } else if (v.provider === "gemini") {
+      reply = await callGemini(message, v.model, images);
+    } else {
+      reply = "No valid provider selected.";
+    }
+
+    res.json({ reply });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ reply: "Server error. Please try again later." });
+  }
 });
 
-// PORT
-const PORT = process.env.PORT || 3000;
-app.listen(PORT,()=>console.log(`Nasoro server running on port ${PORT}`));
+app.listen(PORT, () => console.log(`Nasoro server running on port ${PORT}`));
