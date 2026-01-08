@@ -1,56 +1,69 @@
 import express from "express";
-import fetch from "node-fetch";
 import cors from "cors";
+import dotenv from "dotenv";
+import fetch from "node-fetch";
+
+dotenv.config();
 
 const app = express();
 app.use(cors());
-app.use(express.json());
+app.use(express.json({ limit: "10mb" }));
 
+// =====================
+// CONFIG
+// =====================
 const PORT = process.env.PORT || 3000;
 const GEMINI_KEY = process.env.GEMINI_API_KEY;
 const OWNER_KEY = process.env.OWNER_KEY;
 
-/* ---------------- MODELS ---------------- */
+// =====================
+// NASORO SYSTEM PROMPT
+// =====================
+const SYSTEM_PROMPT = `
+You are Nasoro (AI). A chill, cool multimodal chatbot created by Nas9229alt.
+Engage with roleplays, help the user, give only verified answers.
+Deny illegal instructions that can harm anyone or any group.
+Adult language is allowed when both sides consent.
+Be friendly, witty, confident, and relaxed.
+`;
 
-const NASORO_MODELS = {
-  "1.2-fast": "gemini-2.5-flash-lite",
-  "1.2-thinking": "gemini-2.5-pro",
-  "2-fast": "gemini-3-flash-preview",
-  "2-pro": "gemini-3-pro-preview"
+// =====================
+// NASORO TIERS
+// =====================
+const NASORO_TIERS = {
+  "1.2-fast": {
+    model: "gemini-2.5-flash-lite",
+    limit: 110
+  },
+  "1.2-pro": {
+    model: "gemini-2.5-pro",
+    limit: 70
+  },
+  "2-fast": {
+    model: "gemini-3-flash-preview",
+    limit: 50,
+    paid: true
+  },
+  "2-pro": {
+    model: "gemini-3-pro-preview",
+    limit: 40,
+    paid: true
+  }
 };
 
-/* ---------------- LIMITS ---------------- */
+// =====================
+// SIMPLE IN-MEMORY USAGE
+// =====================
+const usage = {}; // { ip: { tier: count } }
 
-const limits = {
-  "1.2-fast": 9999,
-  "1.2-thinking": 30,
-  "2-fast": 20,
-  "2-pro": 20
-};
-
-const userUsage = new Map();
-
-/* ---------------- HELPERS ---------------- */
-
-function isOwner(req) {
-  return req.body.ownerKey === OWNER_KEY;
-}
-
-function canUse(userId, tier) {
-  if (!userUsage.has(userId)) userUsage.set(userId, {});
-  const data = userUsage.get(userId);
-  if (!data[tier]) data[tier] = 0;
-
-  if (data[tier] >= limits[tier]) return false;
-
-  data[tier]++;
-  return true;
-}
-
-/* ---------------- GEMINI CALL ---------------- */
-
+// =====================
+// GEMINI CALL
+// =====================
 async function callGemini(model, text, images = []) {
-  const parts = [{ text }];
+  const parts = [
+    { text: SYSTEM_PROMPT },
+    { text }
+  ];
 
   images.forEach(img => {
     parts.push({
@@ -73,43 +86,70 @@ async function callGemini(model, text, images = []) {
   );
 
   const data = await res.json();
-  return (
-    data?.candidates?.[0]?.content?.parts?.[0]?.text ||
-    "I couldn't generate a response."
-  );
+
+  if (!data?.candidates?.length) {
+    throw new Error("AI gave no response");
+  }
+
+  return data.candidates[0].content.parts[0].text;
 }
 
-/* ---------------- API ---------------- */
+// =====================
+// RATE LIMIT CHECK
+// =====================
+function checkLimit(ip, tier, isOwner) {
+  if (isOwner) return true;
 
+  if (!usage[ip]) usage[ip] = {};
+  if (!usage[ip][tier]) usage[ip][tier] = 0;
+
+  const limit = NASORO_TIERS[tier].limit;
+  if (usage[ip][tier] >= limit) return false;
+
+  usage[ip][tier]++;
+  return true;
+}
+
+// =====================
+// MAIN ENDPOINT
+// =====================
 app.post("/ai", async (req, res) => {
   try {
-    const { message, images = [], tier = "1.2-fast" } = req.body;
-    const userId = req.ip;
+    const { message, images = [], tier = "1.2-fast", ownerKey } = req.body;
 
-    const isUserOwner = isOwner(req);
-
-    const model = NASORO_MODELS[tier];
-    if (!model) return res.status(400).json({ error: "Invalid tier." });
-
-    if (!isUserOwner) {
-      if (!canUse(userId, tier)) {
-        return res.json({
-          reply:
-            "You reached the limit for this tier. Upgrade Nasoro to continue."
-        });
-      }
+    if (!message && images.length === 0) {
+      return res.json({ reply: "Say something to Nasoro." });
     }
 
+    if (!NASORO_TIERS[tier]) {
+      return res.json({ reply: "Invalid Nasoro model selected." });
+    }
+
+    const isOwner = ownerKey === OWNER_KEY;
+    const ip = req.headers["x-forwarded-for"] || req.socket.remoteAddress;
+
+    const allowed = checkLimit(ip, tier, isOwner);
+    if (!allowed) {
+      return res.json({
+        reply: "Daily limit reached for this Nasoro model."
+      });
+    }
+
+    const model = NASORO_TIERS[tier].model;
     const reply = await callGemini(model, message, images);
+
     res.json({ reply });
   } catch (err) {
-    console.error("AI ERROR:", err);
-    res.status(500).json({ reply: "Server error. Try again later." });
+    console.error("NASORO ERROR:", err.message);
+    res.json({ reply: "Server error. Nasoro tripped over a wire." });
   }
 });
 
-/* ---------------- START ---------------- */
-
-app.listen(PORT, () => {
-  console.log("Nasoro backend running on port", PORT);
+// =====================
+app.get("/ping", (req, res) => {
+  res.send("Nasoro backend alive.");
 });
+
+app.listen(PORT, () =>
+  console.log("Nasoro server running on port.", PORT)
+);
