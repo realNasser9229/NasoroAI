@@ -111,7 +111,7 @@ const NASORO_TIERS = [
   { name:"1.2 Pro", tier:"Oro-1.2-pro", paid:false },
   { name:"2 Fast", tier:"Oro-2-fast", paid:true },
   { name:"2 Pro", tier:"Oro-2-pro", paid:true },
-  { name:"2 Chat Oro", tier:"Oro-2-chat", paid:true }
+  { name:"2 Chat Oro", tier:"Oro-2-chat", paid:false } // FREE now
 ];
 
 let selectedTier = NASORO_TIERS[0].tier;
@@ -132,10 +132,18 @@ function closeSidebar(){sidebar.classList.remove('sidebar-active');overlay.class
 // Render models
 function renderModels(){
   const container=document.getElementById("model-list");
-  container.innerHTML=NASORO_TIERS.map(m=>{
-    const paidTag=m.paid?` <span class="buy-btn" onclick="buyTier('${m.tier}')">Buy</span>`:"";
-    return `<div class="flex items-center justify-between gap-3 p-3.5 rounded-2xl hover:bg-white/5 cursor-pointer text-sm text-zinc-400 hover:text-white transition">
-    <div onclick="selectTier('${m.tier}')"><i class="fa-solid fa-bolt"></i> ${m.name}</div>${paidTag}</div>`;
+  container.innerHTML = NASORO_TIERS.map(m=>{
+    const paidTag = m.paid
+      ? ` <span class="buy-btn" onclick="buyTier('${m.tier}')">Buy</span>`
+      : "";
+    return `
+      <div class="flex items-center justify-between gap-3 p-3.5 rounded-2xl hover:bg-white/5 cursor-pointer text-sm text-zinc-400 hover:text-white transition">
+        <div onclick="selectTier('${m.tier}')">
+          <i class="fa-solid fa-bolt"></i> ${m.name}
+        </div>
+        ${paidTag}
+      </div>
+    `;
   }).join('');
 }
 renderModels();
@@ -143,7 +151,7 @@ function selectTier(tier){selectedTier=tier;}
 
 // Image tray
 imgInput.addEventListener('change', e=>{
-  const files=Array.from(e.target.files);
+  const files = Array.from(e.target.files);
   files.forEach(file=>{
     const r=new FileReader();
     r.onload=ev=>{attachments.push(ev.target.result);renderTray();};
@@ -153,27 +161,44 @@ imgInput.addEventListener('change', e=>{
 function renderTray(){
   if(attachments.length>0){
     imgTray.classList.remove('hidden');
-    imgTray.innerHTML=attachments.map((s,i)=>`<div class="relative w-16 h-16 rounded-2xl overflow-hidden border border-white/10">
-      <img src="${s}" class="w-full h-full object-cover">
-      <div onclick="removeImg(${i})" class="absolute inset-0 bg-black/60 flex items-center justify-center cursor-pointer opacity-0 hover:opacity-100 transition-opacity">
-      <i class="fa-solid fa-trash text-white text-xs"></i></div></div>`).join('');
+    imgTray.innerHTML = attachments.map((s,i)=>`
+      <div class="relative w-16 h-16 rounded-2xl overflow-hidden border border-white/10">
+        <img src="${s}" class="w-full h-full object-cover">
+        <div onclick="removeImg(${i})"
+          class="absolute inset-0 bg-black/60 flex items-center justify-center cursor-pointer opacity-0 hover:opacity-100 transition-opacity">
+          <i class="fa-solid fa-trash text-white text-xs"></i>
+        </div>
+      </div>
+    `).join('');
   } else imgTray.classList.add('hidden');
 }
 window.removeImg=i=>{attachments.splice(i,1);renderTray();};
 
 // Chat
-chatField.addEventListener('input',function(){this.style.height='auto';this.style.height=this.scrollHeight+'px';});
+chatField.addEventListener('input',function(){
+  this.style.height='auto';
+  this.style.height=this.scrollHeight+'px';
+});
 function postMessage(content,role){
   welcomeUi.classList.add('hidden');
-  const isNas=role==='nasoro';
-  const html=`<div class="max-w-3xl mx-auto flex gap-5 mb-12 msg-animate px-4 md:px-0">
-  <div class="w-10 h-10 rounded-2xl flex-shrink-0 flex items-center justify-center border ${isNas?'bg-white text-black':'border-white/10 text-white'}">
-  <span class="text-xs font-bold italic">${isNas?'O':'U'}</span></div>
-  <div class="flex-1 min-w-0">
-  <p class="text-[9px] font-bold text-zinc-600 uppercase tracking-widest mb-2">${isNas?'Nasoro AI':'You'}</p>
-  <div class="${isNas?'nasoro-glow':''} text-[17px] leading-relaxed text-zinc-100 font-light prose prose-invert max-w-none">
-  ${isNas?marked.parse(content):content.replace(/\n/g,'<br>')}
-  </div></div></div>`;
+  const isNas = role==='nasoro';
+  const html = `
+    <div class="max-w-3xl mx-auto flex gap-5 mb-12 msg-animate px-4 md:px-0">
+      <div class="w-10 h-10 rounded-2xl flex-shrink-0 flex items-center justify-center border
+        ${isNas?'bg-white text-black':'border-white/10 text-white'}">
+        <span class="text-xs font-bold italic">${isNas?'O':'U'}</span>
+      </div>
+      <div class="flex-1 min-w-0">
+        <p class="text-[9px] font-bold text-zinc-600 uppercase tracking-widest mb-2">
+          ${isNas?'Nasoro AI':'You'}
+        </p>
+        <div class="${isNas?'nasoro-glow':''}
+          text-[17px] leading-relaxed text-zinc-100 font-light prose prose-invert max-w-none">
+          ${isNas?marked.parse(content):content.replace(/\n/g,'<br>')}
+        </div>
+      </div>
+    </div>
+  `;
   chatContainer.insertAdjacentHTML('beforeend',html);
   document.querySelectorAll('pre code').forEach(el=>hljs.highlightElement(el));
   chatContainer.scrollTo({top:chatContainer.scrollHeight,behavior:'smooth'});
@@ -192,18 +217,19 @@ async function handleSend(){
     postMessage(data.reply||"Thinking...",'nasoro');
   }catch{postMessage("Sync failed. Check backend connection.",'nasoro');}finally{sendAction.disabled=false;}
 }
-
 sendAction.addEventListener('click',handleSend);
 chatField.addEventListener('keydown',e=>{if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();handleSend();}});
 
-// Stripe payment
+// Stripe payment — only for paid tiers
 async function buyTier(tier){
   try{
+    const model = NASORO_TIERS.find(t=>t.tier===tier);
+    if(!model || !model.paid){alert("This model is free."); return;}
     const res=await fetch("/create-checkout",{method:"POST",headers:{'Content-Type':'application/json'},body:JSON.stringify({tier})});
     const data=await res.json();
     if(data.url) window.open(data.url,"_blank"); else alert("Payment not available");
-  }catch(e){alert("Payment failed");}
+  }catch{alert("Payment failed");}
 }
 </script>
 </body>
-</html>
+  </html>
