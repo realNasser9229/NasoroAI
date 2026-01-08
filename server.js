@@ -1,4 +1,3 @@
-// server.js
 import express from "express";
 import cors from "cors";
 import dotenv from "dotenv";
@@ -17,30 +16,28 @@ app.use(cookieParser());
 // ENV
 // --------------------
 const PORT = process.env.PORT || 3000;
-
-const GEMINI_KEY = process.env.GEMINI_API_KEY;
 const OPENAI_KEY = process.env.OPENAI_API_KEY;
 const OPENROUTER_KEY = process.env.OPENROUTER_KEY;
 const STRIPE_SECRET_KEY = process.env.STRIPE_SECRET_KEY || null;
 
-if (!GEMINI_KEY && !OPENAI_KEY) {
-  console.error("❌ Need at least GEMINI_API_KEY or OPENAI_API_KEY");
+if (!OPENAI_KEY && !OPENROUTER_KEY) {
+  console.error("❌ Need OPENAI_API_KEY or OPENROUTER_KEY");
   process.exit(1);
 }
 
 const stripe = STRIPE_SECRET_KEY ? new Stripe(STRIPE_SECRET_KEY) : null;
 
 // --------------------
-// SYSTEM PROMPTS
+// PROMPTS
 // --------------------
-const SYSTEM_PROMPT = `
+const NASORO_PROMPT = `
 You are Nasoro AI. Chill, witty, friendly chatbot by Nas9229alt.
 Help users, roleplay, deny harmful instructions.
 `;
 
-const ROLEPLAY_PROMPT = `
+const ORO_PROMPT = `
 You are Oro — Nasoro 2 Chat.
-A dedicated roleplay AI. Stay in character.
+A pure roleplay AI. Stay in character.
 No multimodal. Text only.
 `;
 
@@ -48,10 +45,10 @@ No multimodal. Text only.
 // MODELS
 // --------------------
 const NASORO_MODELS = {
-  "1.2-fast": { type: "gemini", model: "gemini-2.5-flash-lite", limit: 110 },
-  "1.2-pro":  { type: "gemini", model: "gemini-2.5-pro", limit: 70 },
-  "2-fast":   { type: "gpt",    model: "gpt-4o-mini", limit: 50, paid: true },
-  "2-pro":    { type: "gpt",    model: "gpt-4o", limit: 40, paid: true },
+  "1.2-fast": { type: "gpt", model: "gpt-4o-mini", limit: 110 },
+  "1.2-pro":  { type: "gpt", model: "gpt-4o", limit: 70 },
+  "2-fast":   { type: "gpt", model: "gpt-4o-mini", limit: 50, paid: true },
+  "2-pro":    { type: "gpt", model: "gpt-4o", limit: 40, paid: true },
 
   // Special
   "oro-chat": { type: "openrouter", model: "meta-llama/llama-3-70b-instruct" }
@@ -62,8 +59,6 @@ const NASORO_MODELS = {
 // --------------------
 const users = new Map(); // uid -> { tier }
 
-// --------------------
-// HELPERS
 // --------------------
 function newUID() {
   return crypto.randomBytes(16).toString("hex");
@@ -98,34 +93,8 @@ function checkLimit(ip, tier) {
 }
 
 // --------------------
-// AI CALLERS
+// AI CALLS
 // --------------------
-async function callGemini(model, text, images = []) {
-  const parts = [{ text: SYSTEM_PROMPT }, { text }];
-
-  images.forEach(img => {
-    parts.push({
-      inline_data: {
-        mime_type: "image/png",
-        data: img.split(",")[1]
-      }
-    });
-  });
-
-  const res = await fetch(
-    `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${GEMINI_KEY}`,
-    {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ contents: [{ role: "user", parts }] })
-    }
-  );
-
-  const data = await res.json();
-  if (!data?.candidates?.length) throw new Error("Gemini no response");
-  return data.candidates[0].content.parts[0].text;
-}
-
 async function callOpenAI(model, text) {
   const res = await fetch("https://api.openai.com/v1/chat/completions", {
     method: "POST",
@@ -136,7 +105,7 @@ async function callOpenAI(model, text) {
     body: JSON.stringify({
       model,
       messages: [
-        { role: "system", content: SYSTEM_PROMPT },
+        { role: "system", content: NASORO_PROMPT },
         { role: "user", content: text }
       ]
     })
@@ -157,7 +126,7 @@ async function callOpenRouter(model, text) {
     body: JSON.stringify({
       model,
       messages: [
-        { role: "system", content: ROLEPLAY_PROMPT },
+        { role: "system", content: ORO_PROMPT },
         { role: "user", content: text }
       ]
     })
@@ -173,7 +142,7 @@ async function callOpenRouter(model, text) {
 // --------------------
 app.post("/ai", async (req, res) => {
   try {
-    const { message, images = [], tier = "1.2-fast" } = req.body;
+    const { message, tier = "1.2-fast" } = req.body;
     const uid = getUser(req, res);
     const userTier = users.get(uid).tier;
 
@@ -181,14 +150,11 @@ app.post("/ai", async (req, res) => {
       return res.json({ reply: "Invalid model selected." });
     }
 
-    // Paid tier check
     if (NASORO_MODELS[tier].paid && userTier !== tier) {
       return res.json({ reply: "Upgrade required for this model." });
     }
 
-    if (!message && images.length === 0) {
-      return res.json({ reply: "Say something to Nasoro." });
-    }
+    if (!message) return res.json({ reply: "Say something to Nasoro." });
 
     const ip =
       req.headers["x-forwarded-for"]?.split(",")[0] ||
@@ -201,9 +167,7 @@ app.post("/ai", async (req, res) => {
     const cfg = NASORO_MODELS[tier];
     let reply;
 
-    if (cfg.type === "gemini") {
-      reply = await callGemini(cfg.model, message, images);
-    } else if (cfg.type === "gpt") {
+    if (cfg.type === "gpt") {
       reply = await callOpenAI(cfg.model, message);
     } else if (cfg.type === "openrouter") {
       reply = await callOpenRouter(cfg.model, message);
@@ -218,8 +182,6 @@ app.post("/ai", async (req, res) => {
 
 // --------------------
 app.get("/ping", (_, res) => res.send("Nasoro backend alive."));
-
-// --------------------
 app.listen(PORT, () =>
   console.log("Nasoro server running on port", PORT)
 );
