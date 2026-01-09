@@ -185,28 +185,22 @@
     const overlay = document.getElementById('overlay');
 
     let attachments = [];
-    let currentModel = 'nasoro-2'; // Default model
+    let currentModel = 'nasoro-2'; // Default
 
-    // MODEL SELECTION LOGIC
+    // MODEL SELECTION
     function setModel(modelKey) {
       currentModel = modelKey;
-      
-      // Reset all buttons to default style
       ['btn-lite', 'btn-std', 'btn-pro'].forEach(id => {
         const btn = document.getElementById(id);
         btn.className = "w-full flex items-center justify-between p-3.5 rounded-2xl text-sm transition text-zinc-400 hover:text-white hover:bg-white/5";
-        // Remove badges if any (simplification)
         const span = btn.querySelector('span');
         if(span) span.remove();
       });
 
-      // Set active style
       const activeBtnId = modelKey === 'nasoro-2-lite' ? 'btn-lite' : (modelKey === 'nasoro-2-pro' ? 'btn-pro' : 'btn-std');
       const activeBtn = document.getElementById(activeBtnId);
-      
       activeBtn.className = "w-full flex items-center justify-between p-3.5 rounded-2xl text-sm transition bg-white text-black font-bold shadow-lg";
       
-      // Close sidebar on mobile after selection
       if(window.innerWidth < 768) closeSidebar();
     }
 
@@ -259,9 +253,19 @@
       this.style.height = this.scrollHeight + 'px';
     });
 
-    function postMessage(content, role) {
+    // UPDATED: Now accepts an 'imgs' array to display images in the chat
+    function postMessage(content, role, imgs = []) {
       welcomeUi.classList.add('hidden');
       const isNas = role === 'nasoro';
+      
+      // Generate Image HTML if images exist
+      let imagesHtml = '';
+      if (imgs && imgs.length > 0) {
+        imagesHtml = `<div class="flex flex-wrap gap-2 mb-3">
+          ${imgs.map(src => `<img src="${src}" class="max-w-full md:max-w-[300px] max-h-[300px] rounded-xl border border-white/10">`).join('')}
+        </div>`;
+      }
+
       const html = `
         <div class="max-w-3xl mx-auto flex gap-5 mb-12 msg-animate px-4 md:px-0">
           <div class="w-10 h-10 rounded-2xl flex-shrink-0 flex items-center justify-center border ${isNas ? 'bg-white text-black' : 'border-white/10 text-white'}">
@@ -269,6 +273,7 @@
           </div>
           <div class="flex-1 min-w-0">
             <p class="text-[9px] font-bold text-zinc-600 uppercase tracking-widest mb-2">${isNas ? 'Nasoro AI' : 'YOU'}</p>
+            ${imagesHtml}
             <div class="${isNas ? 'nasoro-glow' : ''} text-[17px] leading-relaxed text-zinc-100 font-light prose prose-invert max-w-none">
               ${isNas ? marked.parse(content) : content.replace(/\n/g, '<br>')}
             </div>
@@ -284,25 +289,27 @@
       const msg = chatField.value.trim();
       if(!msg && attachments.length === 0) return;
 
-      postMessage(msg, 'user');
+      // Capture images before clearing
+      const snapImg = [...attachments];
+      
+      // Post user message WITH images
+      postMessage(msg, 'user', snapImg);
+      
       chatField.value = '';
       chatField.style.height = 'auto';
-
-      const snapImg = [...attachments];
       attachments = [];
       renderTray();
 
       sendAction.disabled = true;
 
       try {
-        // Updated fetch to include the selected model
         const res = await fetch("https://nasoroai-production.up.railway.app/ai", {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ 
             message: msg, 
             images: snapImg, 
-            model: currentModel // Sending "nasoro-2", "nasoro-2-lite", etc.
+            model: currentModel 
           })
         });
         const data = await res.json();
@@ -320,10 +327,9 @@
       if(e.key === 'Enter' && !e.shiftKey) { 
         e.preventDefault(); 
         chatField.value += "\n"; 
-        handleSend(); // Added triggering send on Enter
+        handleSend(); 
       } 
     });
-  </script>
+</script>
 </body>
-  </html>
-  
+          </html>
