@@ -74,6 +74,11 @@
       to { opacity: 1; transform: translateY(0); }
     }
     .msg-animate { animation: slideUp 0.3s ease-out forwards; }
+
+    /* Custom scrollbar for sidebar history */
+    .history-scroll::-webkit-scrollbar { width: 4px; }
+    .history-scroll::-webkit-scrollbar-track { background: transparent; }
+    .history-scroll::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 10px; }
   </style>
 </head>
 <body class="flex">
@@ -88,11 +93,11 @@
       <span class="text-xl font-bold tracking-tighter">Nasoro AI</span>
     </div>
 
-    <button onclick="location.reload()" class="w-full flex items-center justify-center gap-2 py-4 rounded-2xl bg-white text-black font-bold text-sm hover:scale-[1.02] transition active:scale-95 mb-8">
+    <button onclick="startNewChat()" class="w-full flex items-center justify-center gap-2 py-4 rounded-2xl bg-white text-black font-bold text-sm hover:scale-[1.02] transition active:scale-95 mb-8">
       <i class="fa-solid fa-plus"></i> New Chat
     </button>
 
-    <div class="flex-1 space-y-2 overflow-y-auto">
+    <div class="flex-1 space-y-2 overflow-y-auto history-scroll">
       <p class="text-[10px] uppercase tracking-[0.3em] text-zinc-600 font-bold px-2 mb-4">Select Model</p>
       
       <button onclick="setModel('nasoro-2-lite')" id="btn-lite" class="w-full flex items-center justify-between p-3.5 rounded-2xl text-sm transition text-zinc-400 hover:text-white hover:bg-white/5">
@@ -113,6 +118,8 @@
             <i class="fa-solid fa-brain text-xs"></i> Nasoro 2 Pro
           </div>
       </button>
+
+      <div id="chat-history-list" class="mt-8 space-y-1"></div>
     </div>
 
     <div class="mt-auto pt-6 border-t border-white/5">
@@ -183,46 +190,88 @@
     const imgTray = document.getElementById('img-tray');
     const sidebar = document.getElementById('sidebar');
     const overlay = document.getElementById('overlay');
+    const historyList = document.getElementById('chat-history-list');
 
     let attachments = [];
     let currentModel = 'nasoro-2';
+    let currentChatId = Date.now();
+    let allChats = JSON.parse(localStorage.getItem('nasoro_history') || '{}');
 
-    // MODEL SELECTION
+    // --- HISTORY SYSTEM ---
+    function saveCurrentChat() {
+      const messages = Array.from(chatContainer.children)
+        .filter(el => el.classList.contains('msg-animate'))
+        .map(el => el.outerHTML);
+      
+      if (messages.length > 0) {
+        // Find the first user text message for the title
+        const firstUserMsg = chatContainer.querySelector('.flex-1 div:not(.nasoro-glow)')?.innerText || "Image/New Chat";
+        const title = firstUserMsg.substring(0, 24) + (firstUserMsg.length > 24 ? '...' : '');
+        
+        allChats[currentChatId] = { title, html: messages };
+        localStorage.setItem('nasoro_history', JSON.stringify(allChats));
+        renderHistory();
+      }
+    }
+
+    function renderHistory() {
+      const ids = Object.keys(allChats).sort((a, b) => b - a);
+      if (ids.length === 0) {
+        historyList.innerHTML = '';
+        return;
+      }
+      
+      const historyHtml = `
+        <p class="text-[10px] uppercase tracking-[0.3em] text-zinc-600 font-bold px-2 mb-2">History</p>
+        ${ids.map(id => `
+          <button onclick="loadChat('${id}')" class="w-full flex items-center gap-3 p-3 rounded-xl text-xs text-zinc-400 hover:bg-white/5 transition group">
+            <i class="fa-regular fa-message opacity-50"></i>
+            <span class="truncate flex-1">${allChats[id].title}</span>
+          </button>
+        `).join('')}
+      `;
+      historyList.innerHTML = historyHtml;
+    }
+
+    window.loadChat = (id) => {
+      saveCurrentChat();
+      currentChatId = id;
+      welcomeUi.classList.add('hidden');
+      chatContainer.innerHTML = allChats[id].html.join('');
+      chatContainer.scrollTo({ top: chatContainer.scrollHeight, behavior: 'smooth' });
+      if(window.innerWidth < 768) closeSidebar();
+    };
+
+    window.startNewChat = () => {
+      saveCurrentChat();
+      currentChatId = Date.now();
+      chatContainer.innerHTML = '';
+      welcomeUi.classList.remove('hidden');
+      if(window.innerWidth < 768) closeSidebar();
+    };
+
+    // --- UI HELPERS ---
     function setModel(modelKey) {
       currentModel = modelKey;
       ['btn-lite', 'btn-std', 'btn-pro'].forEach(id => {
         const btn = document.getElementById(id);
         btn.className = "w-full flex items-center justify-between p-3.5 rounded-2xl text-sm transition text-zinc-400 hover:text-white hover:bg-white/5";
-        const span = btn.querySelector('span');
-        if(span) span.remove();
       });
-
       const activeBtnId = modelKey === 'nasoro-2-lite' ? 'btn-lite' : (modelKey === 'nasoro-2-pro' ? 'btn-pro' : 'btn-std');
       const activeBtn = document.getElementById(activeBtnId);
       activeBtn.className = "w-full flex items-center justify-between p-3.5 rounded-2xl text-sm transition bg-white text-black font-bold shadow-lg";
-      
       if(window.innerWidth < 768) closeSidebar();
     }
 
-    // SIDEBAR
-    function openSidebar() {
-      sidebar.classList.add('sidebar-active');
-      overlay.classList.add('overlay-visible');
-    }
-    function closeSidebar() {
-      sidebar.classList.remove('sidebar-active');
-      overlay.classList.remove('overlay-visible');
-    }
+    function openSidebar() { sidebar.classList.add('sidebar-active'); overlay.classList.add('overlay-visible'); }
+    function closeSidebar() { sidebar.classList.remove('sidebar-active'); overlay.classList.remove('overlay-visible'); }
 
-    // IMAGE UPLOAD
+    // --- MEDIA HANDLING ---
     imgInput.addEventListener('change', (e) => {
       const files = Array.from(e.target.files);
       files.forEach(file => {
         const r = new FileReader();
-        r.onload = (ev) => {
-          attachments.push(ev.target.result);
-          renderTray();
-        };
+        r.onload = (ev) => { attachments.push(ev.target.result); renderTray(); };
         r.readAsDataURL(file);
       });
     });
@@ -236,18 +285,12 @@
             <div onclick="removeImg(${i})" class="absolute inset-0 bg-black/60 flex items-center justify-center cursor-pointer opacity-0 hover:opacity-100 transition-opacity">
               <i class="fa-solid fa-trash text-white text-xs"></i>
             </div>
-          </div>
-        `).join('');
-      } else {
-        imgTray.classList.add('hidden');
-      }
+          </div>`).join('');
+      } else { imgTray.classList.add('hidden'); }
     }
-    window.removeImg = (i) => {
-      attachments.splice(i, 1);
-      renderTray();
-    };
+    window.removeImg = (i) => { attachments.splice(i, 1); renderTray(); };
 
-    // CHAT CORE
+    // --- CORE CHAT ---
     chatField.addEventListener('input', function() {
       this.style.height = 'auto';
       this.style.height = this.scrollHeight + 'px';
@@ -256,14 +299,7 @@
     function postMessage(content, role, imgs = []) {
       welcomeUi.classList.add('hidden');
       const isNas = role === 'nasoro';
-      
-      // Generate Image HTML if images exist
-      let imagesHtml = '';
-      if (imgs && imgs.length > 0) {
-        imagesHtml = `<div class="flex flex-wrap gap-2 mb-3">
-          ${imgs.map(src => `<img src="${src}" class="max-w-full md:max-w-[300px] max-h-[300px] rounded-xl border border-white/10">`).join('')}
-        </div>`;
-      }
+      let imagesHtml = imgs.length > 0 ? `<div class="flex flex-wrap gap-2 mb-3">${imgs.map(src => `<img src="${src}" class="max-w-full md:max-w-[300px] max-h-[300px] rounded-xl border border-white/10">`).join('')}</div>` : '';
 
       const html = `
         <div class="max-w-3xl mx-auto flex gap-5 mb-12 msg-animate px-4 md:px-0">
@@ -273,32 +309,28 @@
           <div class="flex-1 min-w-0">
             <p class="text-[9px] font-bold text-zinc-600 uppercase tracking-widest mb-2">${isNas ? 'Nasoro AI' : 'YOU'}</p>
             ${imagesHtml}
-            <div class="${isNas ? 'nasoro-glow' : ''} text-[17px] leading-relaxed text-zinc-100 font-light prose prose-invert max-w-none">
+            <div class="${isNas ? 'nasoro-glow' : 'user-content'} text-[17px] leading-relaxed text-zinc-100 font-light prose prose-invert max-w-none">
               ${isNas ? (content ? marked.parse(content) : '') : (content ? content.replace(/\n/g, '<br>') : '')}
             </div>
           </div>
-        </div>
-      `;
+        </div>`;
       chatContainer.insertAdjacentHTML('beforeend', html);
       document.querySelectorAll('pre code').forEach(el => hljs.highlightElement(el));
       chatContainer.scrollTo({ top: chatContainer.scrollHeight, behavior: 'smooth' });
+      saveCurrentChat();
     }
 
     async function handleSend() {
       const msg = chatField.value.trim();
       if(!msg && attachments.length === 0) return;
-
       const snapImg = [...attachments];
       postMessage(msg, 'user', snapImg);
-      
       chatField.value = '';
       chatField.style.height = 'auto';
       attachments = [];
       renderTray();
-
       sendAction.disabled = true;
 
-      // --- ADD THINKING INDICATOR ---
       const typingId = 'typing-' + Date.now();
       const typingHtml = `
         <div id="${typingId}" class="max-w-3xl mx-auto flex gap-5 mb-12 msg-animate px-4 md:px-0 opacity-50">
@@ -312,8 +344,7 @@
               <span class="w-2 h-2 bg-white rounded-full animate-bounce [animation-delay:0.4s]"></span>
             </div>
           </div>
-        </div>
-      `;
+        </div>`;
       chatContainer.insertAdjacentHTML('beforeend', typingHtml);
       chatContainer.scrollTo({ top: chatContainer.scrollHeight, behavior: 'smooth' });
 
@@ -321,22 +352,13 @@
         const res = await fetch("https://nasoroai-production.up.railway.app/ai", {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ 
-            message: msg, 
-            images: snapImg, 
-            model: currentModel 
-          })
+          body: JSON.stringify({ message: msg, images: snapImg, model: currentModel })
         });
         const data = await res.json();
-        
-        // Remove typing indicator
-        const typingEl = document.getElementById(typingId);
-        if(typingEl) typingEl.remove();
-
+        document.getElementById(typingId)?.remove();
         postMessage(data.reply || "Thinking...", 'nasoro');
       } catch {
-        const typingEl = document.getElementById(typingId);
-        if(typingEl) typingEl.remove();
+        document.getElementById(typingId)?.remove();
         postMessage("Sync failed. Check backend connection.", 'nasoro');
       } finally {
         sendAction.disabled = false;
@@ -344,14 +366,11 @@
     }
 
     sendAction.addEventListener('click', handleSend);
+    chatField.addEventListener('keydown', e => { if(e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSend(); } });
 
-    chatField.addEventListener('keydown', e => { 
-      if(e.key === 'Enter' && !e.shiftKey) { 
-        e.preventDefault(); 
-        handleSend(); 
-      } 
-    });
+    // Initial History Render
+    renderHistory();
 </script>
 </body>
-  </html>
-  
+      </html>
+      
