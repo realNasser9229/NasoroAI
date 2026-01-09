@@ -185,7 +185,7 @@
     const overlay = document.getElementById('overlay');
 
     let attachments = [];
-    let currentModel = 'nasoro-2'; // Default
+    let currentModel = 'nasoro-2';
 
     // MODEL SELECTION
     function setModel(modelKey) {
@@ -253,7 +253,6 @@
       this.style.height = this.scrollHeight + 'px';
     });
 
-    // UPDATED: Now accepts an 'imgs' array to display images in the chat
     function postMessage(content, role, imgs = []) {
       welcomeUi.classList.add('hidden');
       const isNas = role === 'nasoro';
@@ -275,7 +274,7 @@
             <p class="text-[9px] font-bold text-zinc-600 uppercase tracking-widest mb-2">${isNas ? 'Nasoro AI' : 'YOU'}</p>
             ${imagesHtml}
             <div class="${isNas ? 'nasoro-glow' : ''} text-[17px] leading-relaxed text-zinc-100 font-light prose prose-invert max-w-none">
-              ${isNas ? marked.parse(content) : content.replace(/\n/g, '<br>')}
+              ${isNas ? (content ? marked.parse(content) : '') : (content ? content.replace(/\n/g, '<br>') : '')}
             </div>
           </div>
         </div>
@@ -289,10 +288,7 @@
       const msg = chatField.value.trim();
       if(!msg && attachments.length === 0) return;
 
-      // Capture images before clearing
       const snapImg = [...attachments];
-      
-      // Post user message WITH images
       postMessage(msg, 'user', snapImg);
       
       chatField.value = '';
@@ -301,6 +297,25 @@
       renderTray();
 
       sendAction.disabled = true;
+
+      // --- ADD THINKING INDICATOR ---
+      const typingId = 'typing-' + Date.now();
+      const typingHtml = `
+        <div id="${typingId}" class="max-w-3xl mx-auto flex gap-5 mb-12 msg-animate px-4 md:px-0 opacity-50">
+          <div class="w-10 h-10 rounded-2xl flex-shrink-0 flex items-center justify-center bg-white text-black">
+            <span class="text-xs font-bold italic">N</span>
+          </div>
+          <div class="flex-1 flex items-center">
+            <div class="flex gap-1.5">
+              <span class="w-2 h-2 bg-white rounded-full animate-bounce"></span>
+              <span class="w-2 h-2 bg-white rounded-full animate-bounce [animation-delay:0.2s]"></span>
+              <span class="w-2 h-2 bg-white rounded-full animate-bounce [animation-delay:0.4s]"></span>
+            </div>
+          </div>
+        </div>
+      `;
+      chatContainer.insertAdjacentHTML('beforeend', typingHtml);
+      chatContainer.scrollTo({ top: chatContainer.scrollHeight, behavior: 'smooth' });
 
       try {
         const res = await fetch("https://nasoroai-production.up.railway.app/ai", {
@@ -313,8 +328,15 @@
           })
         });
         const data = await res.json();
+        
+        // Remove typing indicator
+        const typingEl = document.getElementById(typingId);
+        if(typingEl) typingEl.remove();
+
         postMessage(data.reply || "Thinking...", 'nasoro');
       } catch {
+        const typingEl = document.getElementById(typingId);
+        if(typingEl) typingEl.remove();
         postMessage("Sync failed. Check backend connection.", 'nasoro');
       } finally {
         sendAction.disabled = false;
@@ -326,10 +348,10 @@
     chatField.addEventListener('keydown', e => { 
       if(e.key === 'Enter' && !e.shiftKey) { 
         e.preventDefault(); 
-        chatField.value += "\n"; 
         handleSend(); 
       } 
     });
 </script>
 </body>
-          </html>
+  </html>
+  
