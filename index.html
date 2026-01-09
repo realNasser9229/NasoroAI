@@ -372,49 +372,50 @@
 
     <div class="flex-1 overflow-y-auto space-y-6 md:space-y-10 pr-2">
       <div>
-        <p class="text-[9px] md:text-[10px] uppercase tracking-[0.4em] text-zinc-600 font-black px-2 mb-4 md:mb-5">Oro Models</p>
-        <div class="space-y-2">
-          <button onclick="setModel('nasoro-2-lite')" id="btn-lite" class="model-btn w-full flex items-center gap-3 md:gap-4 p-3 md:p-4 rounded-2xl text-left">
-            <div class="icon-box icon-lite w-9 md:w-10 h-9 md:h-10 rounded-xl flex items-center justify-center text-black transition-all hover:scale-110 flex-shrink-0">
-              <i class="fa-solid fa-bolt-lightning text-base md:text-lg"></i>
-            </div>
-            <div class="min-w-0">
-              <p class="text-xs md:text-sm font-bold truncate">Nasoro 2 Fast</p>
-              <p class="text-[8px] md:text-[10px] opacity-50 truncate">High speed, lite.</p>
-            </div>
-          </button>
-          
-          <button onclick="setModel('nasoro-2')" id="btn-std" class="model-btn w-full flex items-center gap-3 md:gap-4 p-3 md:p-4 rounded-2xl text-left">
-            <div class="icon-box icon-std w-9 md:w-10 h-9 md:h-10 rounded-xl flex items-center justify-center text-black transition-all hover:scale-110 flex-shrink-0">
-              <i class="fa-solid fa-microchip text-base md:text-lg"></i>
-            </div>
-            <div class="min-w-0">
-              <p class="text-xs md:text-sm font-bold truncate">Nasoro 2</p>
-              <p class="text-[8px] md:text-[10px] opacity-50 truncate">Balanced, ideal.</p>
-            </div>
-          </button>
-
-          <button onclick="setModel('nasoro-2-pro')" id="btn-pro" class="model-btn w-full flex items-center gap-3 md:gap-4 p-3 md:p-4 rounded-2xl text-left">
-            <div class="icon-box icon-pro w-9 md:w-10 h-9 md:h-10 rounded-xl flex items-center justify-center text-black transition-all hover:scale-110 flex-shrink-0">
-              <i class="fa-solid fa-brain text-base md:text-lg"></i>
-            </div>
-            <div class="min-w-0">
-              <p class="text-xs md:text-sm font-bold truncate">Nasoro 2 Pro</p>
-              <p class="text-[8px] md:text-[10px] opacity-50 truncate">Maximum reasoning & best logic.</p>
-            </div>
-          </button>
-
-          <button onclick="setModel('nasoro-2-chat')" id="btn-chat" class="model-btn w-full flex items-center gap-3 md:gap-4 p-3 md:p-4 rounded-2xl text-left">
-            <div class="icon-box icon-chat w-9 md:w-10 h-9 md:h-10 rounded-xl flex items-center justify-center text-black transition-all hover:scale-110 flex-shrink-0">
-              <i class="fa-solid fa-comments text-base md:text-lg"></i>
-            </div>
-            <div class="min-w-0">
-              <p class="text-xs md:text-sm font-bold truncate">Nasoro 2 Chat</p>
-              <p class="text-[8px] md:text-[10px] opacity-50 truncate">Roleplay & storytelling.</p>
-            </div>
-          </button>
-        </div>
+  <p class="text-[10px] uppercase tracking-widest text-zinc-600 font-black mb-4 px-2">Neural Cores</p>
+  <div id="model-list" class="space-y-2">
+    <button onclick="setModel('nasoro-2-lite')" id="btn-lite" class="model-btn w-full flex items-center gap-3 md:gap-4 p-3 md:p-4 rounded-2xl text-left">
+      <div class="icon-box icon-lite w-9 md:w-10 h-9 md:h-10 rounded-xl flex items-center justify-center text-black transition-all hover:scale-110 flex-shrink-0">
+        <i class="fa-solid fa-bolt-lightning text-base md:text-lg"></i>
       </div>
+      <div class="min-w-0">
+        <p class="text-xs md:text-sm font-bold text-white truncate">Nasoro 2 Fast</p>
+        <p class="text-[8px] md:text-[10px] text-zinc-500 truncate">High speed, lite.</p>
+      </div>
+    </button>
+    
+    <button onclick="setModel('nasoro-2')" id="btn-std" class="model-btn w-full flex items-center gap-3 md:gap-4 p-3 md:p-4 rounded-2xl text-left active">
+      <div class="icon-box icon-std w-9 md:w-10 h-9 md:h-10 rounded-xl flex items-center justify-center text-black transition-all hover:scale-110 flex-shrink-0">
+        <i class="fa-solid fa-microchip text-base md:text-lg"></i>
+      </div>
+      <div class="min-w-0">
+        <p class="text-xs md:text-sm font-bold text-white truncate">Nasoro 2</p>
+        <p class="text-[8px] md:text-[10px] text-zinc-500 truncate">Balanced, ideal.</p>
+      </div>
+    </button>
+
+    <button onclick="setModel('nasoro-2-pro')" id="btn-pro" class="model-btn w-full flex items-center gap-3 md:gap-4 p-3 md:p-4 rounded-2xl text-left">
+      <div class="icon-box icon-pro w-9 md:w-10 h-9 md:h-10 rounded-xl flex items-center justify-center text-black transition-all hover:scale-110 flex-shrink-0">
+        <i class="fa-solid fa-brain text-base md:text-lg"></i>
+      </div>
+      <div class="min-w-0">
+        <p class="text-xs md:text-sm font-bold text-white truncate">Nasoro 2 Pro</p>
+        <p class="text-[8px] md:text-[10px] text-zinc-500 truncate">Maximum reasoning & logic.</p>
+      </div>
+    </button>
+
+    <button onclick="setModel('nasoro-2-chat')" id="btn-chat" class="model-btn w-full flex items-center gap-3 md:gap-4 p-3 md:p-4 rounded-2xl text-left">
+      <div class="icon-box icon-chat w-9 md:w-10 h-9 md:h-10 rounded-xl flex items-center justify-center text-black transition-all hover:scale-110 flex-shrink-0">
+        <i class="fa-solid fa-comments text-base md:text-lg"></i>
+      </div>
+      <div class="min-w-0">
+        <p class="text-xs md:text-sm font-bold text-white truncate">Nasoro 2 Chat</p>
+        <p class="text-[8px] md:text-[10px] text-zinc-500 truncate">Roleplay & storytelling.</p>
+      </div>
+    </button>
+  </div>
+      </div>
+      
 
       <div>
         <p class="text-[9px] md:text-[10px] uppercase tracking-[0.4em] text-zinc-600 font-black px-2 mb-4 md:mb-5">Memory Archive</p>
@@ -423,7 +424,7 @@
     </div>
 
     <div class="pt-6 md:pt-8 border-t border-white/5 text-center">
-      <p class="text-[8px] md:text-[10px] text-zinc-700 font-black tracking-[0.5em] uppercase italic">© 2026 RazNas AI</p>
+      <p class="text-[8px] md:text-[10px] text-zinc-700 font-black tracking-[0.5em] uppercase italic">© 2026 RazNas</p>
     </div>
   </aside>
 
