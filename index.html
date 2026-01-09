@@ -12,7 +12,9 @@
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 
   <script>
+    // GLOBAL CONFIG & LOGO
     const LOGO_URL = "https://i.postimg.cc/SRc9H0j8/Screenshot-2026-01-06-18-13-41-32-74158c69f0af68fbf38b28b8774cd491.jpg";
+    
     tailwind.config = {
       theme: { extend: { colors: { nasoro: { bg: '#020202', card: '#080808', border: 'rgba(255,255,255,0.08)' } } } }
     }
@@ -21,147 +23,330 @@
   <style>
     @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap');
     
+    * { box-sizing: border-box; }
     body { background-color: #020202; color: #f4f4f5; font-family: 'Plus Jakarta Sans', sans-serif; height: 100vh; overflow: hidden; margin: 0; }
     
-    .glass-sidebar { background: rgba(5, 5, 5, 0.95); backdrop-filter: blur(40px); border-right: 1px solid rgba(255,255,255,0.08); }
-    
-    /* Model Icons */
+    .bg-mesh {
+      position: fixed; inset: 0; z-index: 0; pointer-events: none;
+      background: 
+        radial-gradient(circle at 10% 10%, rgba(59, 130, 246, 0.08) 0%, transparent 40%),
+        radial-gradient(circle at 90% 90%, rgba(168, 85, 247, 0.08) 0%, transparent 40%);
+      animation: meshShift 20s ease-in-out infinite;
+    }
+
+    @keyframes meshShift { 0%, 100% { opacity: 0.5; } 50% { opacity: 1; } }
+
+    .glass-sidebar { 
+      background: rgba(5, 5, 5, 0.85); 
+      backdrop-filter: blur(40px); 
+      border-right: 1px solid rgba(255,255,255,0.08);
+      box-shadow: 40px 0 80px rgba(0,0,0,0.5);
+    }
+    .glass-header { 
+      background: rgba(2, 2, 2, 0.7); 
+      backdrop-filter: blur(20px); 
+      border-bottom: 1px solid rgba(255,255,255,0.05);
+    }
+
     .icon-lite { background: linear-gradient(135deg, #a5f3fc 0%, #22d3ee 100%); }
     .icon-std { background: linear-gradient(135deg, #ffffff 0%, #9ca3af 100%); }
     .icon-pro { background: linear-gradient(135deg, #c4b5fd 0%, #8b5cf6 100%); }
     .icon-chat { background: linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%); }
 
-    .model-btn { transition: all 0.3s ease; border: 1px solid rgba(255,255,255,0.05); }
-    .model-btn.active { background: #fff !important; color: #000 !important; }
-    .model-btn.active p { color: #000 !important; opacity: 1 !important; }
-    .model-btn.active .icon-box { background: #000 !important; color: #fff !important; }
+    @keyframes slideUp { from { opacity: 0; transform: translateY(20px) scale(0.95); } to { opacity: 1; transform: translateY(0) scale(1); } }
+    .msg-anim { animation: slideUp 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
+    
+    .sidebar-active { transform: translateX(0) !important; }
+    
+    .model-btn { transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1); border: 1px solid rgba(255,255,255,0.08); position: relative; overflow: hidden; }
+    .model-btn:hover { background: rgba(255,255,255,0.08); transform: translateX(4px); }
+    
+    /* FIX: Active state logic */
+    .model-btn.active { 
+      background: #fff !important; 
+      color: #000 !important; 
+      font-weight: 800; 
+      border-color: #fff;
+      box-shadow: 0 10px 30px rgba(255,255,255,0.2);
+    }
+    .model-btn.active p { color: #000 !important; }
+    .model-btn.active .icon-box { color: #fff; background: #000 !important; }
 
-    /* MOBILE TEXT FIXES */
-    @media (max-width: 768px) {
-      .model-btn { padding: 12px 8px !important; }
-      .model-text-container { min-width: 140px !important; display: block !important; visibility: visible !important; opacity: 1 !important; }
-      .model-btn p { white-space: normal !important; overflow: visible !important; display: block !important; }
+    .nasoro-glow { border-left: 3px solid #fff; padding-left: 1.5rem; filter: drop-shadow(0 0 10px rgba(255,255,255,0.08)); }
+    
+    .input-container {
+      background: rgba(10, 10, 10, 0.9);
+      backdrop-filter: blur(50px);
+      border: 1px solid rgba(255,255,255,0.12);
+      box-shadow: 0 -20px 60px rgba(0,0,0,0.8);
     }
 
-    .nasoro-glow { border-left: 2px solid #fff; padding-left: 1rem; }
-    .input-container { background: rgba(10, 10, 10, 0.95); backdrop-filter: blur(20px); border: 1px solid rgba(255,255,255,0.1); }
+    .live-pulse { width: 6px; height: 6px; background: #4ade80; border-radius: 50%; animation: pulse 1.5s infinite; }
+    @keyframes pulse { 0% { transform: scale(1); opacity: 1; } 70% { transform: scale(1.5); opacity: 0; } 100% { transform: scale(1); opacity: 1; } }
+
+    #send-action { background: #fff; color: #000; }
+
+    /* MOBILE TEXT RENDER FIX */
+    @media (max-width: 768px) {
+      .glass-sidebar { box-shadow: none; }
+      .input-container { border-radius: 30px 30px 0 0; }
+      /* Removed the rule that was hiding text on mobile */
+      .model-btn div:last-child { display: block !important; }
+    }
+
+    ::-webkit-scrollbar { width: 4px; }
+    ::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 10px; }
   </style>
 </head>
-<body class="flex h-screen">
+<body class="flex flex-col md:flex-row h-screen">
+  <div class="bg-mesh"></div>
 
-  <aside id="sidebar" class="fixed inset-y-0 left-0 w-[280px] md:relative md:translate-x-0 -translate-x-full glass-sidebar z-[1000] flex flex-col p-5 transition-transform duration-300">
-    <div class="flex items-center gap-3 mb-10 px-2">
-      <img src="https://i.postimg.cc/SRc9H0j8/Screenshot-2026-01-06-18-13-41-32-74158c69f0af68fbf38b28b8774cd491.jpg" class="h-10 w-10 rounded-xl object-cover border border-white/10">
-      <h2 class="text-xl font-black text-white tracking-tighter">Nasoro</h2>
-    </div>
-
-    <div class="flex-1 overflow-y-auto space-y-2">
-      <p class="text-[10px] uppercase tracking-widest text-zinc-600 font-black mb-4 px-2">Neural Cores</p>
-      
-      <button onclick="setModel('nasoro-2-lite')" id="btn-lite" class="model-btn w-full flex items-center gap-3 p-3 rounded-2xl text-left">
-        <div class="icon-box icon-lite w-9 h-9 rounded-xl flex items-center justify-center text-black flex-shrink-0">
-          <i class="fa-solid fa-bolt-lightning text-sm"></i>
-        </div>
-        <div class="model-text-container flex-1">
-          <p class="text-xs font-bold text-white">Nasoro 2 Fast</p>
-          <p class="text-[10px] text-zinc-500 opacity-80">High speed, lite.</p>
-        </div>
-      </button>
-
-      <button onclick="setModel('nasoro-2')" id="btn-std" class="model-btn w-full flex items-center gap-3 p-3 rounded-2xl text-left">
-        <div class="icon-box icon-std w-9 h-9 rounded-xl flex items-center justify-center text-black flex-shrink-0">
-          <i class="fa-solid fa-microchip text-sm"></i>
-        </div>
-        <div class="model-text-container flex-1">
-          <p class="text-xs font-bold text-white">Nasoro 2</p>
-          <p class="text-[10px] text-zinc-500 opacity-80">Balanced, ideal.</p>
-        </div>
-      </button>
-
-      <button onclick="setModel('nasoro-2-pro')" id="btn-pro" class="model-btn w-full flex items-center gap-3 p-3 rounded-2xl text-left">
-        <div class="icon-box icon-pro w-9 h-9 rounded-xl flex items-center justify-center text-black flex-shrink-0">
-          <i class="fa-solid fa-brain text-sm"></i>
-        </div>
-        <div class="model-text-container flex-1">
-          <p class="text-xs font-bold text-white">Nasoro 2 Pro</p>
-          <p class="text-[10px] text-zinc-500 opacity-80">Maximum logic.</p>
-        </div>
-      </button>
-
-      <button onclick="setModel('nasoro-2-chat')" id="btn-chat" class="model-btn w-full flex items-center gap-3 p-3 rounded-2xl text-left">
-        <div class="icon-box icon-chat w-9 h-9 rounded-xl flex items-center justify-center text-black flex-shrink-0">
-          <i class="fa-solid fa-comments text-sm"></i>
-        </div>
-        <div class="model-text-container flex-1">
-          <p class="text-xs font-bold text-white">Nasoro 2 Chat</p>
-          <p class="text-[10px] text-zinc-500 opacity-80">Storytelling.</p>
-        </div>
-      </button>
-    </div>
-  </aside>
-
-  <main class="flex-1 flex flex-col relative overflow-hidden">
-    <header class="h-14 flex items-center px-4 md:hidden border-b border-white/5">
-      <button onclick="openSidebar()" class="text-white"><i class="fa-solid fa-bars-staggered"></i></button>
-    </header>
-
-    <div id="chat-container" class="flex-1 overflow-y-auto px-4 md:px-20 pt-10 pb-40">
-      <div id="welcome-ui" class="text-center pt-20">
-        <img src="https://i.postimg.cc/SRc9H0j8/Screenshot-2026-01-06-18-13-41-32-74158c69f0af68fbf38b28b8774cd491.jpg" class="h-32 w-32 rounded-3xl mx-auto mb-6 shadow-2xl object-cover">
-        <h1 class="text-5xl font-black text-white tracking-tighter">NASORO</h1>
+  <aside id="sidebar" class="fixed inset-y-0 left-0 w-[85%] md:w-[340px] -translate-x-full md:relative md:translate-x-0 glass-sidebar z-[1000] flex flex-col p-4 md:p-8 transition-transform duration-500">
+    <div class="flex items-center gap-5 mb-8 md:mb-12 px-2">
+      <div class="relative">
+        <img id="side-logo" src="" class="h-12 md:h-14 w-12 md:w-14 rounded-2xl object-cover border border-white/10">
+        <div class="absolute -bottom-1 -right-1 live-pulse"></div>
+      </div>
+      <div>
+        <h2 class="text-xl md:text-2xl font-black text-white">Nasoro</h2>
+        <p class="text-[8px] text-zinc-500 font-black tracking-widest uppercase">Intelligence Engine</p>
       </div>
     </div>
 
-    <div class="absolute bottom-0 left-0 w-full p-4 flex justify-center z-[100]">
-      <div class="w-full max-w-4xl input-container rounded-3xl p-2 flex items-end gap-2">
-        <textarea id="chat-field" rows="1" placeholder="Type..." class="flex-1 bg-transparent border-none focus:ring-0 text-white p-3 resize-none"></textarea>
-        <button id="send-action" class="w-12 h-12 bg-white text-black rounded-2xl flex-shrink-0"><i class="fa-solid fa-arrow-up"></i></button>
+    <button onclick="startNewChat()" class="w-full py-4 rounded-2xl bg-white text-black font-black text-sm mb-8">
+      <i class="fa-solid fa-plus-circle mr-2"></i> New Interaction
+    </button>
+
+    <div class="flex-1 overflow-y-auto space-y-6 pr-2">
+      <div>
+        <p class="text-[10px] uppercase tracking-widest text-zinc-600 font-black px-2 mb-4">Oro Models</p>
+        <div class="space-y-2">
+          <button onclick="setModel('nasoro-2-lite')" id="btn-lite" class="model-btn w-full flex items-center gap-3 p-3 rounded-2xl text-left">
+            <div class="icon-box icon-lite w-10 h-10 rounded-xl flex items-center justify-center text-black flex-shrink-0">
+              <i class="fa-solid fa-bolt-lightning text-lg"></i>
+            </div>
+            <div class="min-w-0">
+              <p class="text-xs font-bold truncate">Nasoro 2 Fast</p>
+              <p class="text-[10px] opacity-50 truncate text-zinc-400">High speed, lite.</p>
+            </div>
+          </button>
+          
+          <button onclick="setModel('nasoro-2')" id="btn-std" class="model-btn w-full flex items-center gap-3 p-3 rounded-2xl text-left">
+            <div class="icon-box icon-std w-10 h-10 rounded-xl flex items-center justify-center text-black flex-shrink-0">
+              <i class="fa-solid fa-microchip text-lg"></i>
+            </div>
+            <div class="min-w-0">
+              <p class="text-xs font-bold truncate">Nasoro 2</p>
+              <p class="text-[10px] opacity-50 truncate text-zinc-400">Balanced, ideal.</p>
+            </div>
+          </button>
+
+          <button onclick="setModel('nasoro-2-pro')" id="btn-pro" class="model-btn w-full flex items-center gap-3 p-3 rounded-2xl text-left">
+            <div class="icon-box icon-pro w-10 h-10 rounded-xl flex items-center justify-center text-black flex-shrink-0">
+              <i class="fa-solid fa-brain text-lg"></i>
+            </div>
+            <div class="min-w-0">
+              <p class="text-xs font-bold truncate">Nasoro 2 Pro</p>
+              <p class="text-[10px] opacity-50 truncate text-zinc-400">Maximum reasoning & logic.</p>
+            </div>
+          </button>
+
+          <button onclick="setModel('nasoro-2-chat')" id="btn-chat" class="model-btn w-full flex items-center gap-3 p-3 rounded-2xl text-left">
+            <div class="icon-box icon-chat w-10 h-10 rounded-xl flex items-center justify-center text-black flex-shrink-0">
+              <i class="fa-solid fa-comments text-lg"></i>
+            </div>
+            <div class="min-w-0">
+              <p class="text-xs font-bold truncate">Nasoro 2 Chat</p>
+              <p class="text-[10px] opacity-50 truncate text-zinc-400">Roleplay & storytelling.</p>
+            </div>
+          </button>
+        </div>
+      </div>
+
+      <div>
+        <p class="text-[10px] uppercase tracking-widest text-zinc-600 font-black px-2 mb-4">Memory Archive</p>
+        <div id="history-list" class="space-y-1"></div>
+      </div>
+    </div>
+  </aside>
+
+  <main class="flex-1 flex flex-col relative h-full overflow-hidden z-10">
+    <header class="h-16 flex items-center justify-between px-4 glass-header shrink-0">
+      <button onclick="openSidebar()" class="md:hidden text-zinc-400 p-2"><i class="fa-solid fa-bars-staggered text-xl"></i></button>
+      <div class="flex items-center gap-2">
+         <div class="live-pulse"></div>
+         <span class="text-[10px] font-bold text-zinc-400 uppercase tracking-widest">Neural Link Active</span>
+      </div>
+    </header>
+
+    <div id="chat-container" class="flex-1 overflow-y-auto px-4 md:px-16 pt-8 pb-48 scroll-smooth">
+      <div id="welcome-ui" class="max-w-3xl mx-auto pt-12 text-center">
+        <img id="main-logo" src="" class="h-24 w-24 md:h-40 md:w-40 rounded-[2.5rem] mx-auto mb-8 border-2 border-white/10 shadow-2xl object-cover">
+        <h1 class="text-6xl md:text-9xl font-black tracking-tighter text-white mb-6">NASORO</h1>
+        <p class="text-zinc-500 text-lg md:text-2xl font-medium italic">Refined Neural Intelligence. RazNas 2026.</p>
+      </div>
+    </div>
+
+    <div class="absolute bottom-0 left-0 w-full p-2 md:p-10 flex justify-center pointer-events-none z-[100]">
+      <div class="w-full max-w-5xl input-container p-2 pointer-events-auto md:rounded-[40px]">
+        <div id="image-preview-container" class="flex gap-2 px-4 overflow-x-auto"></div>
+        <div class="flex items-end gap-2 px-4 py-2">
+          <label class="w-12 h-12 flex items-center justify-center rounded-full hover:bg-white/10 cursor-pointer text-zinc-500 flex-shrink-0">
+            <i class="fa-solid fa-plus-circle text-xl"></i>
+            <input type="file" id="img-input" class="hidden" accept="image/*" multiple>
+          </label>
+          <textarea id="chat-field" rows="1" placeholder="Consult Nasoro Intelligence..." class="flex-1 bg-transparent border-none focus:ring-0 py-3 text-white text-lg resize-none max-h-52"></textarea>
+          <button id="send-action" class="w-12 h-12 flex items-center justify-center rounded-2xl transition-all flex-shrink-0">
+            <i class="fa-solid fa-arrow-up text-xl"></i>
+          </button>
+        </div>
       </div>
     </div>
   </main>
 
-  <div id="overlay" onclick="closeSidebar()" class="fixed inset-0 bg-black/80 z-[998] hidden transition-opacity"></div>
+  <div id="overlay" onclick="closeSidebar()" class="fixed inset-0 bg-black/95 z-[998] hidden opacity-0 transition-opacity"></div>
 
   <script>
+    // Set Logo Sources Immediately
+    document.getElementById('side-logo').src = LOGO_URL;
+    document.getElementById('main-logo').src = LOGO_URL;
+
     const chatContainer = document.getElementById('chat-container');
     const welcomeUi = document.getElementById('welcome-ui');
     const chatField = document.getElementById('chat-field');
     const sendAction = document.getElementById('send-action');
     const sidebar = document.getElementById('sidebar');
     const overlay = document.getElementById('overlay');
+    const historyList = document.getElementById('history-list');
+    const imgInput = document.getElementById('img-input');
+    const imagePreviewContainer = document.getElementById('image-preview-container');
 
-    function openSidebar() { sidebar.classList.remove('-translate-x-full'); overlay.classList.remove('hidden'); }
-    function closeSidebar() { sidebar.classList.add('-translate-x-full'); overlay.classList.add('hidden'); }
+    let currentChatId = Date.now();
+    let currentModel = 'nasoro-2';
+    let allChats = JSON.parse(localStorage.getItem('nasoro_ultra_archive') || '{}');
+    let selectedImages = [];
+
+    function openSidebar() { 
+      sidebar.classList.add('sidebar-active'); 
+      overlay.classList.remove('hidden'); 
+      setTimeout(() => overlay.classList.add('opacity-100'), 10); 
+    }
+    
+    function closeSidebar() { 
+      sidebar.classList.remove('sidebar-active'); 
+      overlay.classList.remove('opacity-100'); 
+      setTimeout(() => overlay.classList.add('hidden'), 300); 
+    }
 
     function setModel(key) {
+      currentModel = key;
       document.querySelectorAll('.model-btn').forEach(b => b.classList.remove('active'));
-      const idMap = {'nasoro-2-lite':'btn-lite', 'nasoro-2':'btn-std', 'nasoro-2-pro':'btn-pro', 'nasoro-2-chat':'btn-chat'};
-      document.getElementById(idMap[key]).classList.add('active');
+      const id = { 'nasoro-2-lite': 'btn-lite', 'nasoro-2-pro': 'btn-pro', 'nasoro-2': 'btn-std', 'nasoro-2-chat': 'btn-chat' }[key];
+      document.getElementById(id).classList.add('active');
       if(window.innerWidth < 768) closeSidebar();
     }
 
-    function postMessage(content, role) {
+    imgInput.addEventListener('change', (e) => {
+      Array.from(e.target.files).forEach(file => {
+        const reader = new FileReader();
+        reader.onload = (ev) => {
+          selectedImages.push(ev.target.result);
+          const img = document.createElement('img');
+          img.src = ev.target.result;
+          img.className = "h-16 w-16 object-cover rounded-xl border border-white/10 mb-2";
+          imagePreviewContainer.appendChild(img);
+        };
+        reader.readAsDataURL(file);
+      });
+    });
+
+    function postMessage(content, role, images = []) {
       welcomeUi.classList.add('hidden');
       const isNas = role === 'nasoro';
+      let imgHtml = images.map(src => `<img src="${src}" class="max-w-full max-h-80 rounded-2xl mb-4 border border-white/10">`).join('');
+
       const html = `
-        <div class="flex gap-4 mb-8 ${isNas ? 'nasoro-glow' : ''}">
-          <div class="w-8 h-8 rounded-lg overflow-hidden flex-shrink-0">
-            <img src="${isNas ? LOGO_URL : ''}" class="bg-zinc-800 w-full h-full">
+        <div class="msg-group max-w-4xl mx-auto flex gap-4 mb-10 msg-anim px-2 md:px-0">
+          <div class="w-10 h-10 md:w-14 md:h-14 rounded-2xl flex-shrink-0 flex items-center justify-center overflow-hidden border border-white/5 bg-nasoro-card">
+            ${isNas ? `<img src="${LOGO_URL}" class="w-full h-full object-cover">` : `<div class="text-[10px] font-black text-zinc-600">YOU</div>`}
           </div>
-          <div class="flex-1 text-zinc-200 text-lg">
-            ${isNas ? marked.parse(content) : content}
+          <div class="flex-1 min-w-0 pt-2">
+            <p class="text-[9px] font-black text-zinc-600 uppercase tracking-widest mb-3">${isNas ? 'Nasoro' : 'User Entry'}</p>
+            ${imgHtml}
+            <div class="${isNas ? 'nasoro-glow text-zinc-100' : 'user-txt text-zinc-300'} text-lg leading-relaxed prose prose-invert max-w-none font-medium">
+              ${isNas ? marked.parse(content) : content.replace(/\n/g, '<br>')}
+            </div>
           </div>
         </div>`;
       chatContainer.insertAdjacentHTML('beforeend', html);
-      chatContainer.scrollTo(0, chatContainer.scrollHeight);
+      document.querySelectorAll('pre code').forEach(el => hljs.highlightElement(el));
+      chatContainer.scrollTo({ top: chatContainer.scrollHeight, behavior: 'smooth' });
+      saveContext();
     }
 
-    sendAction.onclick = () => { 
-      const val = chatField.value; 
-      if(val) { postMessage(val, 'user'); chatField.value = ''; postMessage("Neural Processing...", 'nasoro'); }
-    };
+    function saveContext() {
+      const msgs = Array.from(chatContainer.querySelectorAll('.msg-group')).map(el => el.outerHTML);
+      if(msgs.length > 0) {
+        const text = chatContainer.querySelector('.user-txt')?.innerText || "Memory Log";
+        allChats[currentChatId] = { title: text.substring(0, 32) + '...', html: msgs };
+        localStorage.setItem('nasoro_ultra_archive', JSON.stringify(allChats));
+        renderArchive();
+      }
+    }
 
-    setModel('nasoro-2');
+    function renderArchive() {
+      const ids = Object.keys(allChats).sort((a,b) => b-a);
+      historyList.innerHTML = ids.length ? ids.map(id => `
+        <div class="group relative flex items-center mb-1">
+          <button onclick="loadChat('${id}')" class="flex-1 flex items-center gap-3 px-3 py-2 text-left text-xs truncate text-zinc-400 hover:text-white transition-all">
+            <i class="fa-regular fa-message opacity-30"></i> <span class="truncate">${allChats[id].title}</span>
+          </button>
+          <button onclick="deleteChat('${id}')" class="absolute right-3 opacity-0 group-hover:opacity-100 p-2 text-zinc-600 hover:text-red-500">
+            <i class="fa-solid fa-trash-can text-sm"></i>
+          </button>
+        </div>
+      `).join('') : '<p class="px-4 text-[10px] text-zinc-700 font-black uppercase italic">Archive Empty</p>';
+    }
+
+    window.deleteChat = (id) => { delete allChats[id]; localStorage.setItem('nasoro_ultra_archive', JSON.stringify(allChats)); renderArchive(); if(currentChatId == id) startNewChat(); };
+    window.loadChat = (id) => { currentChatId = id; welcomeUi.classList.add('hidden'); chatContainer.innerHTML = allChats[id].html.join(''); chatContainer.scrollTo({ top: chatContainer.scrollHeight }); if(window.innerWidth < 768) closeSidebar(); };
+    window.startNewChat = () => { currentChatId = Date.now(); chatContainer.innerHTML = ''; chatContainer.appendChild(welcomeUi); welcomeUi.classList.remove('hidden'); selectedImages = []; imagePreviewContainer.innerHTML = ''; if(window.innerWidth < 768) closeSidebar(); };
+
+    async function handleSend() {
+      const msg = chatField.value.trim();
+      const imgs = [...selectedImages];
+      if(!msg && imgs.length === 0) return;
+      
+      postMessage(msg || '[Image Entry]', 'user', imgs);
+      chatField.value = '';
+      selectedImages = [];
+      imagePreviewContainer.innerHTML = '';
+      
+      const tid = 't-'+Date.now();
+      chatContainer.insertAdjacentHTML('beforeend', `<div id="${tid}" class="msg-group max-w-4xl mx-auto flex gap-4 mb-10 px-2 md:px-0"><div class="w-10 h-10 md:w-14 md:h-14 rounded-2xl overflow-hidden border border-white/5 bg-nasoro-card"><img src="${LOGO_URL}" class="w-full h-full object-cover"></div><div class="flex gap-2.5 items-center h-10 md:h-14"><span class="w-2 h-2 bg-zinc-700 rounded-full animate-bounce"></span><span class="w-2 h-2 bg-zinc-700 rounded-full animate-bounce [animation-delay:0.2s]"></span><span class="w-2 h-2 bg-zinc-700 rounded-full animate-bounce [animation-delay:0.4s]"></span></div></div>`);
+      chatContainer.scrollTo({ top: chatContainer.scrollHeight, behavior: 'smooth' });
+
+      try {
+        const res = await fetch("https://nasoroai-production.up.railway.app/ai", { 
+          method: 'POST', 
+          headers: { 'Content-Type': 'application/json' }, 
+          body: JSON.stringify({ message: msg, images: imgs, model: currentModel }) 
+        });
+        const data = await res.json();
+        document.getElementById(tid).remove();
+        postMessage(data.reply || "Neural system timeout.", 'nasoro');
+      } catch (err) { 
+        document.getElementById(tid).remove(); 
+        postMessage("Neural Link Severed.", 'nasoro'); 
+      }
+    }
+
+    sendAction.addEventListener('click', handleSend);
+    chatField.addEventListener('keydown', e => { if(e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSend(); } });
+    
+    renderArchive();
+    setModel('nasoro-2-lite');
   </script>
 </body>
-</html>
+  </html>
+  
