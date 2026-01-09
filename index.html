@@ -119,7 +119,7 @@
 
     <div class="flex-1 overflow-y-auto space-y-6 pr-2">
       <div>
-        <p class="text-[10px] uppercase tracking-widest text-zinc-600 font-black px-2 mb-4">Neural Cores</p>
+        <p class="text-[10px] uppercase tracking-widest text-zinc-600 font-black px-2 mb-4">Oro Models</p>
         <div class="space-y-2">
           <button onclick="setModel('nasoro-2-lite')" id="btn-lite" class="model-btn w-full flex items-center gap-3 p-3 rounded-2xl text-left">
             <div class="icon-box icon-lite w-10 h-10 rounded-xl flex items-center justify-center text-black flex-shrink-0">
@@ -345,7 +345,7 @@
     chatField.addEventListener('keydown', e => { if(e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSend(); } });
     
     renderArchive();
-    setModel('nasoro-2');
+    setModel('nasoro-2-lite');
   </script>
 </body>
 </html>
