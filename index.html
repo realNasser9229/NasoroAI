@@ -93,13 +93,26 @@
     </button>
 
     <div class="flex-1 space-y-2 overflow-y-auto">
-      <p class="text-[10px] uppercase tracking-[0.3em] text-zinc-600 font-bold px-2 mb-4">Navigation</p>
-      <div class="flex items-center gap-3 p-3.5 rounded-2xl hover:bg-white/5 cursor-pointer text-sm text-zinc-400 hover:text-white transition">
-          <i class="fa-solid fa-layer-group"></i> Models
-      </div>
-      <div class="flex items-center gap-3 p-3.5 rounded-2xl hover:bg-white/5 cursor-pointer text-sm text-zinc-400 hover:text-white transition">
-          <i class="fa-solid fa-gear"></i> Settings
-      </div>
+      <p class="text-[10px] uppercase tracking-[0.3em] text-zinc-600 font-bold px-2 mb-4">Select Model</p>
+      
+      <button onclick="setModel('nasoro-2-lite')" id="btn-lite" class="w-full flex items-center justify-between p-3.5 rounded-2xl text-sm transition text-zinc-400 hover:text-white hover:bg-white/5">
+          <div class="flex items-center gap-3">
+            <i class="fa-solid fa-bolt text-xs"></i> Nasoro 2 Lite
+          </div>
+      </button>
+
+      <button onclick="setModel('nasoro-2')" id="btn-std" class="w-full flex items-center justify-between p-3.5 rounded-2xl text-sm transition bg-white text-black font-bold shadow-lg">
+          <div class="flex items-center gap-3">
+            <i class="fa-solid fa-star text-xs"></i> Nasoro 2
+          </div>
+          <span class="text-[9px] bg-black text-white px-2 py-0.5 rounded-full">FAST</span>
+      </button>
+
+      <button onclick="setModel('nasoro-2-pro')" id="btn-pro" class="w-full flex items-center justify-between p-3.5 rounded-2xl text-sm transition text-zinc-400 hover:text-white hover:bg-white/5">
+          <div class="flex items-center gap-3">
+            <i class="fa-solid fa-brain text-xs"></i> Nasoro 2 Pro
+          </div>
+      </button>
     </div>
 
     <div class="mt-auto pt-6 border-t border-white/5">
@@ -137,7 +150,6 @@
 
         <div class="bg-nasoro-card/80 backdrop-blur-xl border border-white/10 p-3 rounded-[30px] flex items-end gap-2 focus-within:border-white/30 transition-all duration-300">
           
-          <!-- Upload button -->
           <label class="w-12 h-12 flex items-center justify-center rounded-2xl cursor-pointer hover:bg-white/5 transition active:scale-90">
             <i class="fa-solid fa-plus text-zinc-500"></i>
             <input type="file" id="img-input" class="hidden" accept="image/*" multiple>
@@ -173,6 +185,30 @@
     const overlay = document.getElementById('overlay');
 
     let attachments = [];
+    let currentModel = 'nasoro-2'; // Default model
+
+    // MODEL SELECTION LOGIC
+    function setModel(modelKey) {
+      currentModel = modelKey;
+      
+      // Reset all buttons to default style
+      ['btn-lite', 'btn-std', 'btn-pro'].forEach(id => {
+        const btn = document.getElementById(id);
+        btn.className = "w-full flex items-center justify-between p-3.5 rounded-2xl text-sm transition text-zinc-400 hover:text-white hover:bg-white/5";
+        // Remove badges if any (simplification)
+        const span = btn.querySelector('span');
+        if(span) span.remove();
+      });
+
+      // Set active style
+      const activeBtnId = modelKey === 'nasoro-2-lite' ? 'btn-lite' : (modelKey === 'nasoro-2-pro' ? 'btn-pro' : 'btn-std');
+      const activeBtn = document.getElementById(activeBtnId);
+      
+      activeBtn.className = "w-full flex items-center justify-between p-3.5 rounded-2xl text-sm transition bg-white text-black font-bold shadow-lg";
+      
+      // Close sidebar on mobile after selection
+      if(window.innerWidth < 768) closeSidebar();
+    }
 
     // SIDEBAR
     function openSidebar() {
@@ -259,10 +295,15 @@
       sendAction.disabled = true;
 
       try {
+        // Updated fetch to include the selected model
         const res = await fetch("https://nasoroai-production.up.railway.app/ai", {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ message: msg, images: snapImg })
+          body: JSON.stringify({ 
+            message: msg, 
+            images: snapImg, 
+            model: currentModel // Sending "nasoro-2", "nasoro-2-lite", etc.
+          })
         });
         const data = await res.json();
         postMessage(data.reply || "Thinking...", 'nasoro');
@@ -275,13 +316,14 @@
 
     sendAction.addEventListener('click', handleSend);
 
-    // Enter = newline
     chatField.addEventListener('keydown', e => { 
       if(e.key === 'Enter' && !e.shiftKey) { 
         e.preventDefault(); 
         chatField.value += "\n"; 
+        handleSend(); // Added triggering send on Enter
       } 
     });
   </script>
 </body>
-          </html>
+  </html>
+  
