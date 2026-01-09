@@ -20,27 +20,33 @@
   <style>
     @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap');
     
-    * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+    * { box-sizing: border-box; }
     body { background-color: #020202; color: #f4f4f5; font-family: 'Plus Jakarta Sans', sans-serif; height: 100vh; overflow: hidden; margin: 0; }
     
-    /* Background Mesh with Animated Shimmer */
+    /* Premium Background FX */
     .bg-mesh {
       position: fixed; inset: 0; z-index: 0; pointer-events: none;
       background: 
-        radial-gradient(circle at 20% 30%, rgba(59, 130, 246, 0.05) 0%, transparent 50%),
-        radial-gradient(circle at 80% 70%, rgba(168, 85, 247, 0.05) 0%, transparent 50%);
+        radial-gradient(circle at 10% 10%, rgba(59, 130, 246, 0.08) 0%, transparent 40%),
+        radial-gradient(circle at 90% 90%, rgba(168, 85, 247, 0.08) 0%, transparent 40%);
+      animation: meshShift 20s ease-in-out infinite;
+    }
+
+    @keyframes meshShift {
+      0%, 100% { opacity: 0.5; }
+      50% { opacity: 1; }
     }
 
     .glass-sidebar { 
-      background: rgba(5, 5, 5, 0.8); 
-      backdrop-filter: blur(50px); 
-      border-right: 1px solid rgba(255,255,255,0.05);
+      background: rgba(5, 5, 5, 0.85); 
+      backdrop-filter: blur(40px); 
+      border-right: 1px solid rgba(255,255,255,0.08);
+      box-shadow: 40px 0 80px rgba(0,0,0,0.5);
     }
-    
     .glass-header { 
-      background: rgba(2, 2, 2, 0.6); 
-      backdrop-filter: blur(25px); 
-      border-bottom: 1px solid rgba(255,255,255,0.03);
+      background: rgba(2, 2, 2, 0.7); 
+      backdrop-filter: blur(20px); 
+      border-bottom: 1px solid rgba(255,255,255,0.05);
     }
 
     /* Model Icon Gradients */
@@ -49,178 +55,461 @@
     .icon-pro { background: linear-gradient(135deg, #c4b5fd 0%, #8b5cf6 100%); }
     .icon-chat { background: linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%); }
 
-    /* Animations */
-    @keyframes slideUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
-    .msg-anim { animation: slideUp 0.5s cubic-bezier(0.2, 1, 0.3, 1) forwards; }
+    /* Enhanced Animations */
+    @keyframes slideUp { 
+      from { opacity: 0; transform: translateY(20px) scale(0.95); } 
+      to { opacity: 1; transform: translateY(0) scale(1); } 
+    }
     
-    .model-btn { transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); border: 1px solid rgba(255,255,255,0.05); }
-    .model-btn.active { 
-      background: #fff !important; color: #000 !important; 
-      box-shadow: 0 10px 30px rgba(255,255,255,0.1);
+    @keyframes fadeInScale {
+      from { opacity: 0; transform: scale(0.9); }
+      to { opacity: 1; transform: scale(1); }
     }
-    .model-btn.active .icon-box { background: #000 !important; color: #fff; }
 
-    /* Input Dock Styling */
-    .input-container {
-      background: rgba(12, 12, 12, 0.85);
-      backdrop-filter: blur(40px);
+    @keyframes glow {
+      0%, 100% { filter: drop-shadow(0 0 10px rgba(59, 130, 246, 0.3)); }
+      50% { filter: drop-shadow(0 0 20px rgba(59, 130, 246, 0.6)); }
+    }
+
+    @keyframes float {
+      0%, 100% { transform: translateY(0px); }
+      50% { transform: translateY(-8px); }
+    }
+
+    .msg-anim { animation: slideUp 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
+    .welcome-anim { animation: fadeInScale 0.8s cubic-bezier(0.34, 1.56, 0.64, 1) forwards; }
+    
+    .sidebar-active { transform: translateX(0) !important; }
+    
+    .model-btn { 
+      transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1); 
       border: 1px solid rgba(255,255,255,0.08);
-      box-shadow: 0 -15px 40px rgba(0,0,0,0.5);
+      position: relative;
+      overflow: hidden;
     }
 
-    /* Image Gallery Preview Items */
-    .image-gallery-item {
-      width: 60px; height: 60px; border-radius: 12px; object-fit: cover;
-      border: 2px solid rgba(255,255,255,0.1); cursor: pointer; transition: 0.3s;
+    .model-btn::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: -100%;
+      width: 100%;
+      height: 100%;
+      background: linear-gradient(90deg, transparent, rgba(255,255,255,0.1), transparent);
+      transition: left 0.5s;
     }
-    .image-gallery-item:hover { transform: scale(1.1); border-color: #ef4444; }
 
-    /* Send Button Shimmer */
-    #send-action {
-      background: #fff; color: #000;
-      transition: all 0.3s;
+    .model-btn:hover::before { left: 100%; }
+    .model-btn:hover { 
+      background: rgba(255,255,255,0.08); 
+      transform: translateX(4px);
+      box-shadow: 0 8px 24px rgba(59, 130, 246, 0.15);
     }
-    #send-action:hover { transform: scale(1.05); box-shadow: 0 0 20px rgba(255,255,255,0.3); }
+    .model-btn.active { 
+      background: linear-gradient(135deg, #fff 0%, #f3f4f6 100%) !important; 
+      color: #000 !important; 
+      font-weight: 800; 
+      border-color: #fff;
+      box-shadow: 0 20px 40px rgba(255,255,255,0.2);
+      animation: glow 2s ease-in-out infinite;
+    }
+    .model-btn.active .icon-box { color: #fff; background: #000 !important; }
+
+    .nasoro-glow { 
+      border-left: 3px solid #fff; 
+      padding-left: 1.5rem; 
+      filter: drop-shadow(0 0 10px rgba(255,255,255,0.08));
+      animation: glow 3s ease-in-out infinite;
+    }
+    
+    /* Input Capsule */
+    .input-container {
+      background: rgba(10, 10, 10, 0.9);
+      backdrop-filter: blur(50px);
+      border: 1px solid rgba(255,255,255,0.12);
+      box-shadow: 0 -20px 60px rgba(0,0,0,0.8), inset 0 1px 0 rgba(255,255,255,0.1);
+      transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    .input-container:focus-within {
+      border-color: rgba(255,255,255,0.2);
+      box-shadow: 0 -20px 80px rgba(59, 130, 246, 0.2), inset 0 1px 0 rgba(255,255,255,0.15);
+    }
+
+    @media (min-width: 768px) { .input-container { border-radius: 40px; } }
+    @media (max-width: 768px) { .input-container { border-radius: 30px 30px 0 0; } }
 
     .live-pulse { 
-      width: 8px; height: 8px; background: #22c55e; border-radius: 50%;
-      box-shadow: 0 0 10px #22c55e; animation: pulse 2s infinite;
+      width: 6px; 
+      height: 6px; 
+      background: #4ade80; 
+      border-radius: 50%; 
+      animation: pulse 1.5s infinite;
+      box-shadow: 0 0 10px rgba(74, 222, 128, 0.6);
     }
-    @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.4; } 100% { opacity: 1; } }
 
+    @keyframes pulse { 
+      0% { 
+        transform: scale(1); 
+        opacity: 1; 
+        box-shadow: 0 0 0 0 rgba(74, 222, 128, 0.7); 
+      } 
+      70% { 
+        transform: scale(1.2); 
+        opacity: 0.5; 
+        box-shadow: 0 0 0 15px rgba(74, 222, 128, 0); 
+      } 
+      100% { 
+        transform: scale(1); 
+        opacity: 1;
+        box-shadow: 0 0 0 0 rgba(74, 222, 128, 0);
+      } 
+    }
+
+    /* Button Enhancements */
+    button {
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    #send-action {
+      background: linear-gradient(135deg, #fff 0%, #f3f4f6 100%);
+      box-shadow: 0 8px 24px rgba(255,255,255,0.15);
+      position: relative;
+      overflow: hidden;
+    }
+
+    #send-action::before {
+      content: '';
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      width: 0;
+      height: 0;
+      background: rgba(0,0,0,0.1);
+      border-radius: 50%;
+      transform: translate(-50%, -50%);
+      transition: width 0.6s, height 0.6s;
+    }
+
+    #send-action:active::before {
+      width: 300px;
+      height: 300px;
+    }
+
+    #send-action:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 12px 32px rgba(255,255,255,0.25);
+    }
+
+    /* Logo Animation */
+    .logo-container {
+      animation: float 3s ease-in-out infinite;
+    }
+
+    .logo-container:hover {
+      animation: none;
+      transform: scale(1.05);
+    }
+
+    /* Welcome Screen */
+    .welcome-ui {
+      animation: fadeInScale 0.8s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+    }
+
+    .welcome-ui h1 {
+      background: linear-gradient(135deg, #fff 0%, #a0aec0 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      animation: slideUp 1s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+      opacity: 0;
+      animation-delay: 0.2s;
+    }
+
+    .welcome-ui p {
+      animation: slideUp 1s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+      opacity: 0;
+      animation-delay: 0.4s;
+    }
+
+    /* Smooth Scrollbar */
     ::-webkit-scrollbar { width: 4px; }
-    ::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 10px; }
-    
-    .nasoro-glow { border-left: 2px solid #fff; padding-left: 1.25rem; }
-    
+    ::-webkit-scrollbar-thumb { 
+      background: rgba(255,255,255,0.1); 
+      border-radius: 10px;
+      transition: background 0.3s ease;
+    }
+    ::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.2); }
+
+    /* History Item Hover */
+    .history-item {
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      border-radius: 12px;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .history-item::before {
+      content: '';
+      position: absolute;
+      left: 0;
+      top: 0;
+      width: 3px;
+      height: 0;
+      background: linear-gradient(180deg, #3b82f6, #8b5cf6);
+      transition: height 0.3s ease;
+    }
+
+    .history-item:hover {
+      background: rgba(255,255,255,0.05);
+      transform: translateX(4px);
+    }
+
+    .history-item:hover::before {
+      height: 100%;
+    }
+
+    /* Chat Message Enhancements */
+    .msg-group {
+      animation: slideUp 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+      opacity: 0;
+    }
+
+    .msg-group:nth-child(1) { animation-delay: 0s; }
+    .msg-group:nth-child(2) { animation-delay: 0.1s; }
+    .msg-group:nth-child(3) { animation-delay: 0.2s; }
+    .msg-group:nth-child(4) { animation-delay: 0.3s; }
+    .msg-group:nth-child(5) { animation-delay: 0.4s; }
+
+    /* Typing Indicator */
+    .typing-dot {
+      animation: bounce 1.4s infinite;
+    }
+    .typing-dot:nth-child(1) { animation-delay: 0s; }
+    .typing-dot:nth-child(2) { animation-delay: 0.2s; }
+    .typing-dot:nth-child(3) { animation-delay: 0.4s; }
+
+    @keyframes bounce {
+      0%, 80%, 100% { transform: scale(1); opacity: 0.5; }
+      40% { transform: scale(1.2); opacity: 1; }
+    }
+
+    /* Image Preview */
+    .image-preview {
+      max-width: 100%;
+      border-radius: 12px;
+      margin: 8px 0;
+      max-height: 300px;
+      object-fit: cover;
+      border: 1px solid rgba(255,255,255,0.1);
+    }
+
+    .image-gallery {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      margin-bottom: 12px;
+    }
+
+    .image-gallery img {
+      max-width: 80px;
+      max-height: 80px;
+      border-radius: 8px;
+      cursor: pointer;
+      border: 1px solid rgba(255,255,255,0.1);
+      transition: all 0.3s ease;
+    }
+
+    .image-gallery img:hover {
+      transform: scale(1.05);
+      border-color: rgba(59, 130, 246, 0.5);
+    }
+
+    /* Overlay */
+    #overlay {
+      transition: opacity 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    /* Mobile Responsive */
     @media (max-width: 768px) {
-      .input-container { border-radius: 24px 24px 0 0 !important; margin: 0 !important; width: 100% !important; }
+      .glass-sidebar { box-shadow: none; }
+      body { font-size: 14px; }
+      .welcome-ui h1 { font-size: 2.5rem !important; }
+      .msg-group { gap: 12px !important; }
+      #chat-container { padding: 8px 12px 160px 12px !important; }
+      .input-container { margin: 0 8px 8px 8px; }
+    }
+
+    @media (max-width: 480px) {
+      .welcome-ui h1 { font-size: 1.75rem !important; }
+      .model-btn { padding: 12px !important; }
+      .model-btn > div:last-child { display: none; }
     }
   </style>
 </head>
-<body class="flex h-screen overflow-hidden">
+<body class="flex flex-col md:flex-row h-screen">
   <div class="bg-mesh"></div>
 
-  <div id="overlay" onclick="closeSidebar()" class="fixed inset-0 bg-black/90 z-[998] hidden opacity-0 transition-opacity"></div>
+  <script>
+    const LOGO_URL = "https://i.postimg.cc/SRc9H0j8/Screenshot-2026-01-06-18-13-41-32-74158c69f0af68fbf38b28b8774cd491.jpg";
+  </script>
 
-  <aside id="sidebar" class="fixed inset-y-0 left-0 w-[300px] md:relative md:translate-x-0 -translate-x-full glass-sidebar z-[1000] flex flex-col p-6 transition-transform duration-500">
-    <div class="flex items-center gap-4 mb-10 px-2">
-      <img src="https://i.postimg.cc/SRc9H0j8/Screenshot-2026-01-06-18-13-41-32-74158c69f0af68fbf38b28b8774cd491.jpg" class="h-12 w-12 rounded-2xl object-cover border border-white/10">
+  <aside id="sidebar" class="fixed inset-y-0 left-0 w-[85%] md:w-[340px] -translate-x-full md:relative md:translate-x-0 glass-sidebar z-[1000] flex flex-col p-4 md:p-8 transition-transform duration-500">
+    <div class="flex items-center gap-5 mb-8 md:mb-12 px-2 group logo-container">
+      <div class="relative">
+        <img src="https://i.postimg.cc/SRc9H0j8/Screenshot-2026-01-06-18-13-41-32-74158c69f0af68fbf38b28b8774cd491.jpg" class="h-12 md:h-14 w-12 md:w-14 rounded-2xl object-cover shadow-2xl transition-all group-hover:scale-110 group-hover:shadow-[0_0_30px_rgba(59,130,246,0.4)] border border-white/10">
+        <div class="absolute -bottom-1 -right-1 live-pulse"></div>
+      </div>
       <div>
-        <h2 class="text-xl font-bold text-white tracking-tighter">Nasoro AI</h2>
-        <p class="text-[9px] text-zinc-500 font-bold tracking-widest uppercase">Intelligence Core</p>
+        <h2 class="text-xl md:text-2xl font-black tracking-tighter text-white">Nasoro</h2>
+        <p class="text-[8px] md:text-[9px] text-zinc-500 font-black tracking-[0.4em] uppercase">Intelligence Engine</p>
       </div>
     </div>
 
-    <button onclick="startNewChat()" class="w-full py-4 rounded-2xl bg-white text-black font-black text-sm mb-8 hover:opacity-90 active:scale-95 transition-all shadow-xl">
-      <i class="fa-solid fa-plus mr-2"></i> New Interaction
+    <button onclick="startNewChat()" class="w-full flex items-center justify-center gap-3 py-3 md:py-4 rounded-2xl bg-gradient-to-r from-white to-gray-100 text-black font-black text-xs md:text-sm mb-8 md:mb-10 hover:shadow-[0_0_30px_rgba(255,255,255,0.2)] hover:scale-105 active:scale-95 transition-all">
+      <i class="fa-solid fa-plus-circle text-lg"></i> <span class="hidden sm:inline">New Interaction</span><span class="sm:hidden">New</span>
     </button>
 
-    <div class="flex-1 overflow-y-auto space-y-8 pr-2">
+    <div class="flex-1 overflow-y-auto space-y-6 md:space-y-10 pr-2">
       <div>
-        <p class="text-[10px] uppercase tracking-widest text-zinc-500 font-bold mb-4 px-2">Neural Engines</p>
+        <p class="text-[9px] md:text-[10px] uppercase tracking-[0.4em] text-zinc-600 font-black px-2 mb-4 md:mb-5">Neural Cores</p>
         <div class="space-y-2">
-          <button onclick="setModel('nasoro-2-lite')" id="btn-lite" class="model-btn w-full flex items-center gap-3 p-3 rounded-xl text-left">
-            <div class="icon-box icon-lite w-10 h-10 rounded-lg flex items-center justify-center text-black flex-shrink-0">
-              <i class="fa-solid fa-bolt-lightning text-sm"></i>
+          <button onclick="setModel('nasoro-2-lite')" id="btn-lite" class="model-btn w-full flex items-center gap-3 md:gap-4 p-3 md:p-4 rounded-2xl text-left">
+            <div class="icon-box icon-lite w-9 md:w-10 h-9 md:h-10 rounded-xl flex items-center justify-center text-black transition-all hover:scale-110 flex-shrink-0">
+              <i class="fa-solid fa-bolt-lightning text-base md:text-lg"></i>
             </div>
-            <div class="truncate"><p class="text-xs font-bold">Lite</p><p class="text-[9px] opacity-50">High Performance</p></div>
+            <div class="min-w-0">
+              <p class="text-xs md:text-sm font-bold truncate">Nasoro 2 Lite</p>
+              <p class="text-[8px] md:text-[10px] opacity-50 truncate">High speed, efficient.</p>
+            </div>
           </button>
-          <button onclick="setModel('nasoro-2')" id="btn-std" class="model-btn w-full flex items-center gap-3 p-3 rounded-xl text-left">
-            <div class="icon-box icon-std w-10 h-10 rounded-lg flex items-center justify-center text-black flex-shrink-0">
-              <i class="fa-solid fa-microchip text-sm"></i>
+          
+          <button onclick="setModel('nasoro-2')" id="btn-std" class="model-btn w-full flex items-center gap-3 md:gap-4 p-3 md:p-4 rounded-2xl text-left">
+            <div class="icon-box icon-std w-9 md:w-10 h-9 md:h-10 rounded-xl flex items-center justify-center text-black transition-all hover:scale-110 flex-shrink-0">
+              <i class="fa-solid fa-microchip text-base md:text-lg"></i>
             </div>
-            <div class="truncate"><p class="text-xs font-bold">Standard</p><p class="text-[9px] opacity-50">Balanced Core</p></div>
+            <div class="min-w-0">
+              <p class="text-xs md:text-sm font-bold truncate">Nasoro 2</p>
+              <p class="text-[8px] md:text-[10px] opacity-50 truncate">Balanced intelligence.</p>
+            </div>
           </button>
-          <button onclick="setModel('nasoro-2-pro')" id="btn-pro" class="model-btn w-full flex items-center gap-3 p-3 rounded-xl text-left">
-            <div class="icon-box icon-pro w-10 h-10 rounded-lg flex items-center justify-center text-black flex-shrink-0">
-              <i class="fa-solid fa-brain text-sm"></i>
+
+          <button onclick="setModel('nasoro-2-pro')" id="btn-pro" class="model-btn w-full flex items-center gap-3 md:gap-4 p-3 md:p-4 rounded-2xl text-left">
+            <div class="icon-box icon-pro w-9 md:w-10 h-9 md:h-10 rounded-xl flex items-center justify-center text-black transition-all hover:scale-110 flex-shrink-0">
+              <i class="fa-solid fa-brain text-base md:text-lg"></i>
             </div>
-            <div class="truncate"><p class="text-xs font-bold">Pro</p><p class="text-[9px] opacity-50">Max Logic</p></div>
+            <div class="min-w-0">
+              <p class="text-xs md:text-sm font-bold truncate">Nasoro 2 Pro</p>
+              <p class="text-[8px] md:text-[10px] opacity-50 truncate">Max reasoning & logic.</p>
+            </div>
           </button>
-          <button onclick="setModel('nasoro-2-chat')" id="btn-chat" class="model-btn w-full flex items-center gap-3 p-3 rounded-xl text-left">
-            <div class="icon-box icon-chat w-10 h-10 rounded-lg flex items-center justify-center text-black flex-shrink-0">
-              <i class="fa-solid fa-comments text-sm"></i>
+
+          <button onclick="setModel('nasoro-2-chat')" id="btn-chat" class="model-btn w-full flex items-center gap-3 md:gap-4 p-3 md:p-4 rounded-2xl text-left">
+            <div class="icon-box icon-chat w-9 md:w-10 h-9 md:h-10 rounded-xl flex items-center justify-center text-black transition-all hover:scale-110 flex-shrink-0">
+              <i class="fa-solid fa-comments text-base md:text-lg"></i>
             </div>
-            <div class="truncate"><p class="text-xs font-bold">Chat</p><p class="text-[9px] opacity-50">RP & Creativity</p></div>
+            <div class="min-w-0">
+              <p class="text-xs md:text-sm font-bold truncate">Nasoro 2 Chat</p>
+              <p class="text-[8px] md:text-[10px] opacity-50 truncate">Roleplay & stories.</p>
+            </div>
           </button>
         </div>
       </div>
 
       <div>
-        <p class="text-[10px] uppercase tracking-widest text-zinc-500 font-bold mb-4 px-2">Memory Archive</p>
+        <p class="text-[9px] md:text-[10px] uppercase tracking-[0.4em] text-zinc-600 font-black px-2 mb-4 md:mb-5">Memory Archive</p>
         <div id="history-list" class="space-y-1"></div>
       </div>
     </div>
 
-    <div class="pt-6 border-t border-white/5 text-center">
-      <p class="text-[9px] text-zinc-600 font-black tracking-widest uppercase">© 2026 RazNas AI</p>
+    <div class="pt-6 md:pt-8 border-t border-white/5 text-center">
+      <p class="text-[8px] md:text-[10px] text-zinc-700 font-black tracking-[0.5em] uppercase italic">© 2026 RazNas AI</p>
     </div>
   </aside>
 
-  <main class="flex-1 flex flex-col relative min-w-0">
-    <header class="h-16 flex items-center justify-between px-6 glass-header shrink-0 z-50">
-      <button onclick="openSidebar()" class="md:hidden text-zinc-400"><i class="fa-solid fa-bars-staggered text-xl"></i></button>
-      <div class="flex items-center gap-3">
-        <div class="live-pulse"></div>
-        <span class="text-[10px] font-black text-zinc-500 tracking-widest uppercase">Neural Link Active</span>
+  <main class="flex-1 flex flex-col relative h-full overflow-hidden z-10">
+    <header class="h-16 md:h-20 flex items-center justify-between px-4 md:px-8 glass-header shrink-0">
+      <button onclick="openSidebar()" class="md:hidden text-zinc-400 p-2 hover:text-white hover:bg-white/5 rounded-lg transition-all"><i class="fa-solid fa-bars-staggered text-xl"></i></button>
+      <div class="hidden md:flex items-center gap-4">
+        <span class="text-[11px] font-black text-zinc-500 tracking-[0.4em] uppercase">Architecture: <span class="text-white">v2.4.0-Stable</span></span>
       </div>
-      <div class="w-8"></div>
+      <div class="flex items-center gap-2">
+         <div class="live-pulse"></div>
+         <span class="text-[9px] md:text-[10px] font-bold text-zinc-400 uppercase tracking-widest">Neural Link Active</span>
+      </div>
     </header>
 
-    <div id="chat-container" class="flex-1 overflow-y-auto px-4 md:px-12 pt-8 pb-48">
-      <div id="welcome-ui" class="max-w-2xl mx-auto pt-20 text-center msg-anim">
-        <img src="https://i.postimg.cc/SRc9H0j8/Screenshot-2026-01-06-18-13-41-32-74158c69f0af68fbf38b28b8774cd491.jpg" class="h-28 w-28 md:h-36 md:w-36 rounded-[2.5rem] mx-auto mb-8 border-2 border-white/10 shadow-2xl object-cover">
-        <h1 class="text-6xl md:text-8xl font-black tracking-tighter text-white mb-4">NASORO</h1>
-        <p class="text-zinc-500 text-lg md:text-xl font-medium max-w-md mx-auto italic">Refined Neural Intelligence. Locally Encrypted.</p>
+    <div id="chat-container" class="flex-1 overflow-y-auto px-4 md:px-16 pt-8 md:pt-12 pb-40 md:pb-48 scroll-smooth">
+      <div id="welcome-ui" class="max-w-3xl mx-auto pt-12 md:pt-24 text-center welcome-ui">
+        <div class="relative inline-block mb-8 md:mb-10">
+          <img src="https://i.postimg.cc/SRc9H0j8/Screenshot-2026-01-06-18-13-41-32-74158c69f0af68fbf38b28b8774cd491.jpg" class="h-24 w-24 md:h-44 md:w-44 rounded-[3.5rem] shadow-[0_40px_100px_rgba(0,0,0,0.8)] mx-auto border-2 border-white/10 object-cover transition-all hover:scale-105 hover:shadow-[0_40px_120px_rgba(59,130,246,0.3)]">
+          <div class="absolute -top-4 -right-4 bg-gradient-to-r from-white to-gray-100 text-black text-[8px] md:text-[10px] font-black px-3 md:px-4 py-1 md:py-1.5 rounded-full shadow-2xl animate-bounce">GENESIS</div>
+        </div>
+        <h1 class="text-5xl md:text-9xl font-black tracking-tighter text-white mb-6 md:mb-8">NASORO</h1>
+        <p class="text-zinc-500 text-base md:text-2xl font-medium leading-relaxed max-w-lg mx-auto italic px-4">Refined Neural Intelligence. Every interaction stored locally.</p>
       </div>
     </div>
 
-    <div class="absolute bottom-0 left-0 w-full p-0 md:p-8 flex justify-center pointer-events-none z-[100]">
-      <div class="w-full max-w-4xl input-container p-2 pointer-events-auto md:rounded-[35px]">
-        <div id="image-preview-container" class="flex gap-2 p-3 overflow-x-auto"></div>
-        <div class="flex items-end gap-3 px-4 py-2">
-          <label class="w-12 h-12 flex items-center justify-center rounded-full hover:bg-white/5 cursor-pointer text-zinc-500 transition-all">
-            <i class="fa-solid fa-paperclip text-lg"></i>
+    <div class="absolute bottom-0 left-0 w-full p-2 md:p-10 flex justify-center pointer-events-none z-[100]">
+      <div class="w-full max-w-5xl input-container p-2 md:p-2 pointer-events-auto">
+        <div id="image-preview-container" class="image-gallery px-2 md:px-4 pt-2"></div>
+        <div class="flex items-end gap-2 md:gap-3 px-2 md:px-4 py-2">
+          <label class="w-12 h-12 md:w-14 md:h-14 flex items-center justify-center rounded-full hover:bg-white/10 cursor-pointer text-zinc-500 transition-all hover:text-white hover:scale-110 flex-shrink-0">
+            <i class="fa-solid fa-plus-circle text-lg md:text-xl"></i>
             <input type="file" id="img-input" class="hidden" accept="image/*" multiple>
           </label>
-          <textarea id="chat-field" rows="1" placeholder="Consult Nasoro..." class="flex-1 bg-transparent border-none focus:ring-0 py-3 text-white placeholder-zinc-700 text-lg resize-none max-h-48"></textarea>
-          <button id="send-action" class="w-12 h-12 flex items-center justify-center rounded-2xl flex-shrink-0">
-            <i class="fa-solid fa-arrow-up text-lg"></i>
+          <textarea id="chat-field" rows="1" placeholder="Consult Nasoro Intelligence..." class="flex-1 bg-transparent border-none focus:ring-0 py-3 md:py-5 text-white placeholder-zinc-700 text-base md:text-[18px] resize-none max-h-52 scrollbar-hide transition-all"></textarea>
+          <button id="send-action" class="w-12 h-12 md:w-14 md:h-14 flex items-center justify-center rounded-[1.5rem] text-black hover:scale-110 active:scale-95 transition-all flex-shrink-0">
+            <i class="fa-solid fa-arrow-up text-lg md:text-xl"></i>
           </button>
         </div>
       </div>
     </div>
   </main>
 
+  <div id="overlay" onclick="closeSidebar()" class="fixed inset-0 bg-black/95 z-[998] hidden opacity-0 transition-opacity"></div>
+
   <script>
     const chatContainer = document.getElementById('chat-container');
     const welcomeUi = document.getElementById('welcome-ui');
     const chatField = document.getElementById('chat-field');
     const sendAction = document.getElementById('send-action');
+    const sidebar = document.getElementById('sidebar');
+    const overlay = document.getElementById('overlay');
     const historyList = document.getElementById('history-list');
     const imgInput = document.getElementById('img-input');
     const imagePreviewContainer = document.getElementById('image-preview-container');
-    const sidebar = document.getElementById('sidebar');
-    const overlay = document.getElementById('overlay');
 
     let currentChatId = Date.now();
     let currentModel = 'nasoro-2';
     let allChats = JSON.parse(localStorage.getItem('nasoro_ultra_archive') || '{}');
     let selectedImages = [];
 
-    function openSidebar() { sidebar.classList.add('translate-x-0'); sidebar.classList.remove('-translate-x-full'); overlay.classList.remove('hidden'); setTimeout(() => overlay.classList.add('opacity-100'), 10); }
-    function closeSidebar() { sidebar.classList.add('-translate-x-full'); sidebar.classList.remove('translate-x-0'); overlay.classList.remove('opacity-100'); setTimeout(() => overlay.classList.add('hidden'), 300); }
+    function openSidebar() { 
+      sidebar.classList.add('sidebar-active'); 
+      overlay.classList.remove('hidden'); 
+      setTimeout(() => overlay.classList.add('opacity-100'), 10); 
+    }
+    
+    function closeSidebar() { 
+      sidebar.classList.remove('sidebar-active'); 
+      overlay.classList.remove('opacity-100'); 
+      setTimeout(() => overlay.classList.add('hidden'), 300); 
+    }
 
     function setModel(key) {
       currentModel = key;
       document.querySelectorAll('.model-btn').forEach(b => b.classList.remove('active'));
-      const mapping = { 'nasoro-2-lite': 'btn-lite', 'nasoro-2-pro': 'btn-pro', 'nasoro-2': 'btn-std', 'nasoro-2-chat': 'btn-chat' };
-      document.getElementById(mapping[key]).classList.add('active');
+      const id = { 'nasoro-2-lite': 'btn-lite', 'nasoro-2-pro': 'btn-pro', 'nasoro-2': 'btn-std', 'nasoro-2-chat': 'btn-chat' }[key];
+      document.getElementById(id).classList.add('active');
       if(window.innerWidth < 768) closeSidebar();
     }
 
+    // Image Upload Handler
     imgInput.addEventListener('change', (e) => {
+      selectedImages = [];
+      imagePreviewContainer.innerHTML = '';
+      
       Array.from(e.target.files).forEach(file => {
         const reader = new FileReader();
         reader.onload = (event) => {
@@ -238,36 +527,11 @@
       });
     });
 
-    function postMessage(content, role, imgs = []) {
-      welcomeUi.classList.add('hidden');
-      const isNas = role === 'nasoro';
-      let imgHtml = imgs.map(src => `<img src="${src}" class="max-w-full rounded-xl my-4 border border-white/10 max-h-64 object-contain">`).join('');
-      
-      const html = `
-        <div class="msg-group max-w-4xl mx-auto flex gap-5 mb-12 msg-anim">
-          <div class="w-12 h-12 rounded-2xl flex-shrink-0 flex items-center justify-center overflow-hidden bg-nasoro-card border border-white/5 shadow-lg">
-            ${isNas ? `<img src="${LOGO_URL}" class="w-full h-full object-cover">` : `<div class="text-[10px] font-black text-zinc-500 uppercase">YOU</div>`}
-          </div>
-          <div class="flex-1 min-w-0">
-            <p class="text-[9px] font-bold text-zinc-600 uppercase tracking-widest mb-3">${isNas ? 'Nasoro' : 'User'}</p>
-            ${imgHtml}
-            <div class="${isNas ? 'nasoro-glow text-zinc-100' : 'user-txt text-zinc-300'} text-[18px] leading-relaxed prose prose-invert max-w-none">
-              ${isNas ? marked.parse(content) : content.replace(/\n/g, '<br>')}
-            </div>
-          </div>
-        </div>`;
-      
-      chatContainer.insertAdjacentHTML('beforeend', html);
-      document.querySelectorAll('pre code').forEach(el => hljs.highlightElement(el));
-      chatContainer.scrollTo({ top: chatContainer.scrollHeight, behavior: 'smooth' });
-      saveContext();
-    }
-
     function saveContext() {
       const msgs = Array.from(chatContainer.querySelectorAll('.msg-group')).map(el => el.outerHTML);
       if(msgs.length > 0) {
-        const text = chatContainer.querySelector('.user-txt')?.innerText || "Conversation Log";
-        allChats[currentChatId] = { title: text.substring(0, 30), html: msgs };
+        const text = chatContainer.querySelector('.user-txt')?.innerText || "Memory Log";
+        allChats[currentChatId] = { title: text.substring(0, 32) + '...', html: msgs };
         localStorage.setItem('nasoro_ultra_archive', JSON.stringify(allChats));
         renderArchive();
       }
@@ -276,45 +540,76 @@
     function renderArchive() {
       const ids = Object.keys(allChats).sort((a,b) => b-a);
       historyList.innerHTML = ids.length ? ids.map(id => `
-        <div class="group relative flex items-center mb-1">
-          <button onclick="loadChat('${id}')" class="flex-1 text-left p-3 rounded-xl text-xs text-zinc-500 hover:bg-white/5 truncate transition-all">
-            <i class="fa-regular fa-message mr-3 opacity-30"></i> ${allChats[id].title}
+        <div class="group relative flex items-center mb-1 history-item">
+          <button onclick="loadChat('${id}')" class="flex-1 flex items-center gap-3 px-3 py-2 text-left text-xs md:text-sm truncate">
+            <i class="fa-regular fa-folder-open mr-1 opacity-30 text-[12px]"></i> <span class="truncate">${allChats[id].title}</span>
           </button>
-          <button onclick="deleteChat('${id}')" class="absolute right-2 opacity-0 group-hover:opacity-100 p-2 text-zinc-600 hover:text-red-500 transition-all">
-            <i class="fa-solid fa-xmark"></i>
+          <button onclick="deleteChat('${id}')" class="absolute right-3 opacity-0 group-hover:opacity-100 p-2 text-zinc-600 hover:text-red-500 transition-all">
+            <i class="fa-solid fa-trash-can text-sm"></i>
           </button>
         </div>
-      `).join('') : '<p class="px-3 text-[10px] text-zinc-700">Empty</p>';
+      `).join('') : '<p class="px-4 text-[8px] md:text-[10px] text-zinc-700 font-black uppercase tracking-widest">Archive Empty</p>';
     }
 
     window.deleteChat = (id) => { delete allChats[id]; localStorage.setItem('nasoro_ultra_archive', JSON.stringify(allChats)); renderArchive(); if(currentChatId == id) startNewChat(); };
-    window.loadChat = (id) => { currentChatId = id; welcomeUi.classList.add('hidden'); chatContainer.innerHTML = allChats[id].html.join(''); chatContainer.scrollTo({ top: chatContainer.scrollHeight }); if(window.innerWidth < 768) closeSidebar(); };
-    window.startNewChat = () => { currentChatId = Date.now(); chatContainer.innerHTML = ''; chatContainer.appendChild(welcomeUi); welcomeUi.classList.remove('hidden'); if(window.innerWidth < 768) closeSidebar(); };
+    window.loadChat = (id) => { currentChatId = id; welcomeUi.classList.add('hidden'); chatContainer.innerHTML = allChats[id].html.join(''); chatContainer.scrollTo({ top: chatContainer.scrollHeight, behavior: 'smooth' }); if(window.innerWidth < 768) closeSidebar(); };
+    window.startNewChat = () => { currentChatId = Date.now(); chatContainer.innerHTML = ''; chatContainer.appendChild(welcomeUi); welcomeUi.classList.remove('hidden'); selectedImages = []; imagePreviewContainer.innerHTML = ''; if(window.innerWidth < 768) closeSidebar(); };
+
+    function postMessage(content, role, images = []) {
+      welcomeUi.classList.add('hidden');
+      const isNas = role === 'nasoro';
+      
+      let imageHtml = '';
+      if (images.length > 0) {
+        imageHtml = images.map(img => `<img src="${img}" class="image-preview">`).join('');
+      }
+
+      const html = `
+        <div class="msg-group max-w-4xl mx-auto flex gap-4 md:gap-6 mb-8 md:mb-14 msg-anim px-2 md:px-0">
+          <div class="w-10 h-10 md:w-14 md:h-14 rounded-3xl flex-shrink-0 flex items-center justify-center overflow-hidden border border-white/5 shadow-2xl bg-nasoro-card">
+            ${isNas ? `<img src="${LOGO_URL}" class="w-full h-full object-cover">` : `<div class="text-[8px] md:text-[10px] font-black text-zinc-600">YOU</div>`}
+          </div>
+          <div class="flex-1 min-w-0 pt-1 md:pt-2">
+            <p class="text-[8px] md:text-[10px] font-black text-zinc-600 uppercase tracking-[0.4em] mb-2 md:mb-4">${isNas ? 'Nasoro' : 'User Entry'}</p>
+            ${imageHtml}
+            <div class="${isNas ? 'nasoro-glow text-zinc-100' : 'user-txt text-zinc-300'} text-sm md:text-[19px] leading-relaxed prose prose-invert max-w-none font-medium">
+              ${isNas ? marked.parse(content) : content.replace(/\n/g, '<br>')}
+            </div>
+          </div>
+        </div>`;
+      chatContainer.insertAdjacentHTML('beforeend', html);
+      document.querySelectorAll('pre code').forEach(el => hljs.highlightElement(el));
+      chatContainer.scrollTo({ top: chatContainer.scrollHeight, behavior: 'smooth' });
+      saveContext();
+    }
 
     async function handleSend() {
       const msg = chatField.value.trim();
-      const imgs = [...selectedImages]; // Copy current images
-      if(!msg && imgs.length === 0) return;
+      if(!msg && selectedImages.length === 0) return;
       
-      postMessage(msg, 'user', imgs);
+      postMessage(msg || '[Sent Image]', 'user', selectedImages);
       chatField.value = '';
-      selectedImages = []; // Clear local array
+      selectedImages = [];
       imagePreviewContainer.innerHTML = '';
       
       const tid = 't-'+Date.now();
-      chatContainer.insertAdjacentHTML('beforeend', `<div id="${tid}" class="msg-group max-w-4xl mx-auto flex gap-5 mb-12"><div class="w-12 h-12 rounded-2xl overflow-hidden border border-white/5 bg-nasoro-card"><img src="${LOGO_URL}" class="w-full h-full object-cover"></div><div class="flex gap-2 items-center h-12 px-2"><span class="w-1.5 h-1.5 bg-zinc-600 rounded-full animate-bounce"></span><span class="w-1.5 h-1.5 bg-zinc-600 rounded-full animate-bounce [animation-delay:0.2s]"></span><span class="w-1.5 h-1.5 bg-zinc-600 rounded-full animate-bounce [animation-delay:0.4s]"></span></div></div>`);
+      chatContainer.insertAdjacentHTML('beforeend', `<div id="${tid}" class="msg-group max-w-4xl mx-auto flex gap-4 md:gap-10 mb-8 md:mb-14 px-2 md:px-0 msg-anim"><div class="w-10 h-10 md:w-14 md:h-14 rounded-3xl overflow-hidden border border-white/5 bg-nasoro-card"><img src="${LOGO_URL}" class="w-full h-full object-cover"></div><div class="flex gap-2.5 items-center h-10 md:h-14"><span class="w-2 h-2 bg-zinc-700 rounded-full typing-dot animate-bounce"></span><span class="w-2 h-2 bg-zinc-700 rounded-full typing-dot animate-bounce"></span><span class="w-2 h-2 bg-zinc-700 rounded-full typing-dot animate-bounce"></span></div></div>`);
       chatContainer.scrollTo({ top: chatContainer.scrollHeight, behavior: 'smooth' });
 
       try {
         const res = await fetch("https://nasoroai-production.up.railway.app/ai", { 
           method: 'POST', 
           headers: { 'Content-Type': 'application/json' }, 
-          body: JSON.stringify({ message: msg, images: imgs, model: currentModel }) 
+          body: JSON.stringify({ message: msg, images: selectedImages, model: currentModel }) 
         });
         const data = await res.json();
         document.getElementById(tid).remove();
-        postMessage(data.reply || "Engine failed to respond.", 'nasoro');
-      } catch { document.getElementById(tid).remove(); postMessage("Neural Link Interrupted.", 'nasoro'); }
+        postMessage(data.reply || "Neural system timeout.", 'nasoro');
+      } catch (err) { 
+        console.error(err);
+        document.getElementById(tid).remove(); 
+        postMessage("Neural Link Severed.", 'nasoro'); 
+      }
     }
 
     sendAction.addEventListener('click', handleSend);
