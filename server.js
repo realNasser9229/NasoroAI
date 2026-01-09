@@ -7,28 +7,18 @@ dotenv.config();
 
 const app = express();
 app.use(cors());
-app.use(express.json({ limit: "50mb" }));
+app.use(express.json({ limit: "50mb" })); 
 
 const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
-let conversationHistory = [];
+let conversationHistory = []; 
 
-// Map Nasoro models to OpenAI models
 const getModelID = (nasoroModel) => {
   switch (nasoroModel) {
     case "nasoro-2-lite": return "gpt-3.5-turbo";
-    case "nasoro-2-pro": return "gpt-4o";
-    case "nasoro-2-chat": return "gpt-3.5-turbo-16k"; // Use 16k tokens for long RP
+    case "nasoro-2-pro": return "gpt-4o"; 
+    case "nasoro-2-chat": return "gpt-3.5-turbo-16k"; // Now using 16k for long memory
     default: return "gpt-4o-mini";
-  }
-};
-
-// Adjust max tokens based on model
-const getMaxTokens = (nasoroModel) => {
-  switch (nasoroModel) {
-    case "nasoro-2-chat": return 4000; // More room for Roleplay responses
-    case "nasoro-2-pro": return 1200;
-    default: return 1200;
   }
 };
 
@@ -37,28 +27,23 @@ app.post("/ai", async (req, res) => {
 
   try {
     let targetModel = getModelID(model);
-    const maxTokens = getMaxTokens(model);
-
-    // System Personality
+    
     let systemInstruction = "You are Nasoro, a chill AI created by Nas9229alt.";
-
+    
     if (model === "nasoro-2-chat") {
-      systemInstruction = `You are Nasoro 2 Chat, a master of Roleplay and creative storytelling.
-      Stay in character, use descriptive language, and use asterisks for actions (e.g., *Leans back and smiles.*).
-      Be immersive and witty. Be cool.`;
-    } else if (model === "nasoro-2-pro") {
-      systemInstruction = "You are Nasoro 2 Pro, an elite and highly sophisticated intelligence made by Nas9229alt.";
-    }
+      systemInstruction = `You are Nasoro 2 Chat, a master of Roleplay. 
+      Stay in character and use asterisks *for actions*. 
+      You have an extended memory (16k) to keep track of long stories.`;
+    } 
 
-    // Auto-upgrade for images if on Lite
-    if (images?.length > 0 && targetModel === "gpt-3.5-turbo") {
+    // Images require vision-capable models (gpt-4o variants)
+    if (images?.length > 0) {
       targetModel = "gpt-4o-mini";
     }
 
-    // Build messages array
     const messages = [
       { role: "system", content: systemInstruction },
-      ...conversationHistory.slice(-20) // Increase memory for RP
+      ...conversationHistory.slice(-30) // Increased memory for the 16k model
     ];
 
     const userContent = [];
@@ -69,25 +54,23 @@ app.post("/ai", async (req, res) => {
 
     messages.push({ role: "user", content: userContent });
 
-    // Send request to OpenAI
     const response = await openai.chat.completions.create({
       model: targetModel,
       messages: messages,
-      max_tokens: maxTokens
+      max_tokens: 1500 // Higher token limit for longer creative responses
     });
 
     const aiReply = response.choices[0].message.content;
 
-    // Save conversation history (Text only)
     conversationHistory.push({ role: "user", content: message || "[Sent Image]" });
     conversationHistory.push({ role: "assistant", content: aiReply });
-    if (conversationHistory.length > 40) conversationHistory.shift(); // Keep RP memory longer
+    if (conversationHistory.length > 40) conversationHistory.shift();
 
     res.json({ reply: aiReply });
 
   } catch (err) {
     console.error(err);
-    res.status(500).json({ reply: "My circuits are fried. Try again!" });
+    res.status(500).json({ reply: "Connection lost. Please try again." });
   }
 });
 
