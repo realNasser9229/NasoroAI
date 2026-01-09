@@ -35,7 +35,6 @@
 <body class="flex">
 
   <script>
-    // The Direct Hosted Link for your Logo
     const LOGO_URL = "https://i.postimg.cc/SRc9H0j8/Screenshot-2026-01-06-18-13-41-32-74158c69f0af68fbf38b28b8774cd491.jpg";
   </script>
 
@@ -60,22 +59,22 @@
           <div class="flex items-center gap-3"><i class="fa-solid fa-masks-theater w-4 text-center"></i> Nasoro 2 Chat</div>
           <span class="text-[8px] border border-indigo-500/50 text-indigo-400 px-1.5 rounded-md font-bold">16K</span>
       </button>
-      <div id="chat-history-list" class="mt-8 pt-6 border-t border-white/5 space-y-1"></div>
     </div>
+    <div class="mt-auto pt-4 text-[10px] text-zinc-600 font-bold tracking-widest text-center uppercase">© RazNas</div>
   </aside>
 
   <main class="flex-1 flex flex-col relative h-full">
     <header class="h-16 flex items-center justify-between px-6 border-b border-nasoro-border glass shrink-0">
       <button onclick="openSidebar()" class="md:hidden text-zinc-400"><i class="fa-solid fa-bars-staggered text-xl"></i></button>
-      <div class="text-[10px] font-bold text-zinc-500 tracking-[0.2em] uppercase">SYSTEM: <span class="text-emerald-500">OPTIMIZED</span></div>
+      <div class="text-[10px] font-bold text-zinc-500 tracking-[0.2em] uppercase">SYSTEM: <span class="text-emerald-500">READY</span></div>
       <div class="w-8"></div>
     </header>
 
     <div id="chat-container" class="flex-1 overflow-y-auto px-6 pt-10 pb-40">
       <div id="welcome-ui" class="max-w-2xl mx-auto mt-20 text-center md:text-left">
-        <img id="welcome-logo" src="" alt="Logo" class="h-20 w-20 rounded-2xl mx-auto md:mx-0 mb-8 shadow-2xl">
-        <h1 class="text-5xl font-extrabold tracking-tighter mb-4">Nasoro AI</h1>
-        <p class="text-zinc-500 text-lg font-medium">Next-generation intelligence for creative and technical tasks.</p>
+        <img id="welcome-logo" src="" alt="Logo" class="h-20 w-20 rounded-2xl mx-auto md:mx-0 mb-8 shadow-2xl border border-white/5">
+        <h1 class="text-5xl font-extrabold tracking-tighter mb-4 text-white">Nasoro AI</h1>
+        <p class="text-zinc-500 text-lg font-medium">Intelligence refined. | © RazNas</p>
       </div>
     </div>
 
@@ -87,7 +86,7 @@
             <i class="fa-solid fa-plus text-lg"></i>
             <input type="file" id="img-input" class="hidden" accept="image/*" multiple>
           </label>
-          <textarea id="chat-field" rows="1" placeholder="Type a message..." class="flex-1 bg-transparent border-none focus:ring-0 py-4 text-white placeholder-zinc-600 text-[16px] resize-none"></textarea>
+          <textarea id="chat-field" rows="1" placeholder="Ask Nasoro anything..." class="flex-1 bg-transparent border-none focus:ring-0 py-4 text-white placeholder-zinc-600 text-[16px] resize-none"></textarea>
           <button id="send-action" class="w-12 h-12 flex items-center justify-center rounded-full bg-white text-black hover:scale-105 active:scale-95 transition shadow-2xl">
             <i class="fa-solid fa-arrow-up text-lg"></i>
           </button>
@@ -108,22 +107,31 @@
     const imgTray = document.getElementById('img-tray');
     const sidebar = document.getElementById('sidebar');
     const overlay = document.getElementById('overlay');
-    const historyList = document.getElementById('chat-history-list');
 
     let attachments = [];
     let currentModel = 'nasoro-2';
-    let currentChatId = Date.now();
-    let allChats = JSON.parse(localStorage.getItem('nasoro_history') || '{}');
 
     function setModel(modelKey) {
       currentModel = modelKey;
       document.querySelectorAll('.model-btn').forEach(b => b.classList.remove('active'));
       const mapping = { 'nasoro-2-lite': 'btn-lite', 'nasoro-2-pro': 'btn-pro', 'nasoro-2-chat': 'btn-chat', 'nasoro-2': 'btn-std' };
       document.getElementById(mapping[modelKey]).classList.add('active');
+      if(window.innerWidth < 768) closeSidebar();
     }
 
     function openSidebar() { sidebar.classList.add('sidebar-active'); overlay.classList.remove('hidden'); setTimeout(() => overlay.classList.add('opacity-100'), 10); }
     function closeSidebar() { sidebar.classList.remove('sidebar-active'); overlay.classList.remove('opacity-100'); setTimeout(() => overlay.classList.add('hidden'), 300); }
+
+    // FIXED START NEW CHAT FUNCTION
+    window.startNewChat = function() {
+      chatContainer.innerHTML = '';
+      chatContainer.appendChild(welcomeUi);
+      welcomeUi.classList.remove('hidden');
+      chatField.value = '';
+      attachments = [];
+      renderTray();
+      if(window.innerWidth < 768) closeSidebar();
+    };
 
     imgInput.addEventListener('change', (e) => {
       Array.from(e.target.files).forEach(file => {
@@ -142,16 +150,17 @@
     function postMessage(content, role, imgs = []) {
       welcomeUi.classList.add('hidden');
       const isNas = role === 'nasoro';
-      let imagesHtml = imgs.length ? `<div class="flex flex-wrap gap-2 mb-4">${imgs.map(src => `<img src="${src}" class="max-w-[320px] rounded-2xl border border-white/10 shadow-2xl">`).join('')}</div>` : '';
+      let imagesHtml = imgs.length ? `<div class="flex flex-wrap gap-2 mb-4">${imgs.map(src => `<img src="${src}" class="max-w-[320px] rounded-2xl border border-white/10">`).join('')}</div>` : '';
       
       const html = `
         <div class="max-w-3xl mx-auto flex gap-6 mb-12 msg-animate px-4">
           <div class="w-10 h-10 rounded-xl flex-shrink-0 flex items-center justify-center overflow-hidden border border-white/5">
-            ${isNas ? `<img src="${LOGO_URL}" class="w-full h-full object-cover">` : `<div class="w-full h-full bg-zinc-900 flex items-center justify-center text-[10px] text-zinc-500 font-bold italic">U</div>`}
+            ${isNas ? `<img src="${LOGO_URL}" class="w-full h-full object-cover">` : `<div class="w-full h-full bg-zinc-900 flex items-center justify-center text-[10px] text-zinc-400 font-bold">YOU</div>`}
           </div>
           <div class="flex-1 min-w-0">
+            <p class="text-[10px] font-black text-zinc-600 uppercase tracking-[0.2em] mb-2">${isNas ? 'Nasoro' : 'YOU'}</p>
             ${imagesHtml}
-            <div class="${isNas ? 'nasoro-glow' : 'user-msg-text'} text-[17px] leading-relaxed text-zinc-200 font-normal prose prose-invert max-w-none">
+            <div class="${isNas ? 'nasoro-glow text-zinc-200' : 'text-zinc-300'} text-[17px] leading-relaxed prose prose-invert max-w-none">
               ${isNas ? marked.parse(content) : content.replace(/\n/g, '<br>')}
             </div>
           </div>
@@ -169,7 +178,7 @@
       chatField.value = ''; attachments = []; renderTray();
       
       const tid = 't-'+Date.now();
-      chatContainer.insertAdjacentHTML('beforeend', `<div id="${tid}" class="max-w-3xl mx-auto flex gap-6 mb-12 msg-animate px-4"><div class="w-10 h-10 rounded-xl overflow-hidden"><img src="${LOGO_URL}" class="w-full h-full object-cover"></div><div class="flex gap-1.5 items-center"><span class="w-1.5 h-1.5 bg-white rounded-full animate-bounce"></span><span class="w-1.5 h-1.5 bg-white rounded-full animate-bounce [animation-delay:0.2s]"></span><span class="w-1.5 h-1.5 bg-white rounded-full animate-bounce [animation-delay:0.4s]"></span></div></div>`);
+      chatContainer.insertAdjacentHTML('beforeend', `<div id="${tid}" class="max-w-3xl mx-auto flex gap-6 mb-12 msg-animate px-4"><div class="w-10 h-10 rounded-xl overflow-hidden shadow-lg"><img src="${LOGO_URL}" class="w-full h-full object-cover"></div><div class="flex gap-1.5 items-center"><span class="w-1.5 h-1.5 bg-white rounded-full animate-bounce"></span><span class="w-1.5 h-1.5 bg-white rounded-full animate-bounce [animation-delay:0.2s]"></span><span class="w-1.5 h-1.5 bg-white rounded-full animate-bounce [animation-delay:0.4s]"></span></div></div>`);
       chatContainer.scrollTo({ top: chatContainer.scrollHeight, behavior: 'smooth' });
 
       try {
@@ -177,7 +186,7 @@
         const data = await res.json();
         document.getElementById(tid).remove();
         postMessage(data.reply || "Error.", 'nasoro');
-      } catch { document.getElementById(tid).remove(); postMessage("Connection lost.", 'nasoro'); }
+      } catch { document.getElementById(tid).remove(); postMessage("Connection error.", 'nasoro'); }
     }
 
     sendAction.addEventListener('click', handleSend);
