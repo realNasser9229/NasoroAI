@@ -195,7 +195,7 @@
             ${isNas ? `<img src="1000048257.jpg" class="w-full h-full rounded-xl object-cover">` : `<span class="text-[10px] italic">U</span>`}
           </div>
           <div class="flex-1 min-w-0">
-            <p class="text-[10px] font-black text-zinc-600 uppercase tracking-[0.2em] mb-2.5">${isNas ? 'Nasoro Engine' : 'User Request'}</p>
+            <p class="text-[10px] font-black text-zinc-600 uppercase tracking-[0.2em] mb-2.5">${isNas ? 'Nasoro AI' : 'User Request'}</p>
             ${imagesHtml}
             <div class="${isNas ? 'nasoro-glow' : 'user-msg-text'} text-[17px] leading-relaxed text-zinc-200 font-normal prose prose-invert max-w-none">
               ${isNas ? marked.parse(content) : content.replace(/\n/g, '<br>')}
@@ -236,4 +236,5 @@
     renderHistory();
 </script>
 </body>
-</html>
+  </html>
+  
