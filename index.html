@@ -19,7 +19,6 @@
 
   <style>
     @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700&display=swap');
-    
     body { background-color: #020202; color: #e4e4e7; font-family: 'Plus Jakarta Sans', sans-serif; height: 100vh; overflow: hidden; }
     .glass { background: rgba(10, 10, 10, 0.7); backdrop-filter: blur(12px); border: 1px solid rgba(255,255,255,0.05); }
     .sidebar-active { transform: translateX(0) !important; }
@@ -36,7 +35,7 @@
 <body class="flex">
 
   <script>
-    // DIRECT LINK TO YOUR LOGO
+    // The Direct Hosted Link for your Logo
     const LOGO_URL = "https://i.postimg.cc/SRc9H0j8/Screenshot-2026-01-06-18-13-41-32-74158c69f0af68fbf38b28b8774cd491.jpg";
   </script>
 
@@ -44,8 +43,8 @@
 
   <aside id="sidebar" class="fixed inset-y-0 left-0 w-[280px] -translate-x-full md:relative md:translate-x-0 bg-nasoro-bg border-r border-nasoro-border z-[1000] flex flex-col p-6">
     <div class="flex items-center gap-4 mb-10 px-2">
-      <img id="side-logo" src="" alt="N" class="h-10 w-10 rounded-lg object-cover nasoro-logo">
-      <span class="text-xl font-bold tracking-tight">Nasoro AI</span>
+      <img id="side-logo" src="" alt="Nasoro" class="h-10 w-10 rounded-lg object-cover nasoro-logo">
+      <span class="text-xl font-bold tracking-tight">Nasoro</span>
     </div>
 
     <button onclick="startNewChat()" class="w-full flex items-center justify-center gap-2 py-3.5 rounded-xl bg-zinc-900 text-white font-semibold text-sm hover:bg-zinc-800 transition-all active:scale-95 mb-8 border border-white/5">
@@ -74,22 +73,9 @@
 
     <div id="chat-container" class="flex-1 overflow-y-auto px-6 pt-10 pb-40">
       <div id="welcome-ui" class="max-w-2xl mx-auto mt-20 text-center md:text-left">
-        <img id="welcome-logo" src="" alt="Logo" class="h-20 w-20 rounded-2xl mx-auto md:mx-0 mb-8 shadow-2xl bg-zinc-900">
+        <img id="welcome-logo" src="" alt="Logo" class="h-20 w-20 rounded-2xl mx-auto md:mx-0 mb-8 shadow-2xl">
         <h1 class="text-5xl font-extrabold tracking-tighter mb-4">Nasoro AI</h1>
-        <p class="text-zinc-500 text-lg font-medium">Intelligence refined.</p>
-        
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mt-12">
-            <div onclick="quickAction('Start a dark fantasy roleplay')" class="p-6 rounded-2xl border border-white/5 bg-white/5 hover:bg-white/10 transition cursor-pointer group text-left">
-                <i class="fa-solid fa-masks-theater text-indigo-400 mb-4 text-xl"></i>
-                <p class="text-sm font-semibold mb-1">Begin Roleplay</p>
-                <p class="text-[11px] text-zinc-500">16K Context Memory</p>
-            </div>
-            <div onclick="quickAction('Analyze this code block')" class="p-6 rounded-2xl border border-white/5 bg-white/5 hover:bg-white/10 transition cursor-pointer group text-left">
-                <i class="fa-solid fa-code text-emerald-400 mb-4 text-xl"></i>
-                <p class="text-sm font-semibold mb-1">Code Analysis</p>
-                <p class="text-[11px] text-zinc-500">High Logic Performance</p>
-            </div>
-        </div>
+        <p class="text-zinc-500 text-lg font-medium">Next-generation intelligence for creative and technical tasks.</p>
       </div>
     </div>
 
@@ -134,32 +120,44 @@
       document.querySelectorAll('.model-btn').forEach(b => b.classList.remove('active'));
       const mapping = { 'nasoro-2-lite': 'btn-lite', 'nasoro-2-pro': 'btn-pro', 'nasoro-2-chat': 'btn-chat', 'nasoro-2': 'btn-std' };
       document.getElementById(mapping[modelKey]).classList.add('active');
-      if(window.innerWidth < 768) closeSidebar();
     }
 
     function openSidebar() { sidebar.classList.add('sidebar-active'); overlay.classList.remove('hidden'); setTimeout(() => overlay.classList.add('opacity-100'), 10); }
     function closeSidebar() { sidebar.classList.remove('sidebar-active'); overlay.classList.remove('opacity-100'); setTimeout(() => overlay.classList.add('hidden'), 300); }
-    function quickAction(txt) { chatField.value = txt; handleSend(); }
+
+    imgInput.addEventListener('change', (e) => {
+      Array.from(e.target.files).forEach(file => {
+        const r = new FileReader();
+        r.onload = (ev) => { attachments.push(ev.target.result); renderTray(); };
+        r.readAsDataURL(file);
+      });
+    });
+
+    function renderTray() {
+      imgTray.classList.toggle('hidden', attachments.length === 0);
+      imgTray.innerHTML = attachments.map((s, i) => `<div class="relative w-14 h-14 rounded-xl overflow-hidden border border-white/10 shadow-lg"><img src="${s}" class="w-full h-full object-cover"><div onclick="removeImg(${i})" class="absolute inset-0 bg-black/60 flex items-center justify-center cursor-pointer opacity-0 hover:opacity-100 transition-opacity"><i class="fa-solid fa-xmark text-white"></i></div></div>`).join('');
+    }
+    window.removeImg = (i) => { attachments.splice(i, 1); renderTray(); };
 
     function postMessage(content, role, imgs = []) {
       welcomeUi.classList.add('hidden');
       const isNas = role === 'nasoro';
-      let imagesHtml = imgs.length ? `<div class="flex flex-wrap gap-2 mb-4">${imgs.map(src => `<img src="${src}" class="max-w-[320px] rounded-2xl border border-white/10">`).join('')}</div>` : '';
+      let imagesHtml = imgs.length ? `<div class="flex flex-wrap gap-2 mb-4">${imgs.map(src => `<img src="${src}" class="max-w-[320px] rounded-2xl border border-white/10 shadow-2xl">`).join('')}</div>` : '';
       
       const html = `
         <div class="max-w-3xl mx-auto flex gap-6 mb-12 msg-animate px-4">
-          <div class="w-10 h-10 rounded-xl flex-shrink-0 border border-white/10 overflow-hidden">
-            ${isNas ? `<img src="${LOGO_URL}" class="w-full h-full object-cover">` : `<div class="w-full h-full bg-zinc-900 flex items-center justify-center text-[10px] text-zinc-500 font-bold italic border border-white/5">U</div>`}
+          <div class="w-10 h-10 rounded-xl flex-shrink-0 flex items-center justify-center overflow-hidden border border-white/5">
+            ${isNas ? `<img src="${LOGO_URL}" class="w-full h-full object-cover">` : `<div class="w-full h-full bg-zinc-900 flex items-center justify-center text-[10px] text-zinc-500 font-bold italic">U</div>`}
           </div>
           <div class="flex-1 min-w-0">
-            <p class="text-[10px] font-black text-zinc-600 uppercase tracking-[0.2em] mb-2.5">${isNas ? 'Nasoro AI' : 'Request'}</p>
             ${imagesHtml}
-            <div class="${isNas ? 'nasoro-glow' : ''} text-[17px] leading-relaxed text-zinc-200 font-normal prose prose-invert max-w-none">
+            <div class="${isNas ? 'nasoro-glow' : 'user-msg-text'} text-[17px] leading-relaxed text-zinc-200 font-normal prose prose-invert max-w-none">
               ${isNas ? marked.parse(content) : content.replace(/\n/g, '<br>')}
             </div>
           </div>
         </div>`;
       chatContainer.insertAdjacentHTML('beforeend', html);
+      document.querySelectorAll('pre code').forEach(el => hljs.highlightElement(el));
       chatContainer.scrollTo({ top: chatContainer.scrollHeight, behavior: 'smooth' });
     }
 
@@ -168,23 +166,23 @@
       if(!msg && attachments.length === 0) return;
       const snapImg = [...attachments];
       postMessage(msg, 'user', snapImg);
-      chatField.value = ''; attachments = []; imgTray.classList.add('hidden');
+      chatField.value = ''; attachments = []; renderTray();
       
       const tid = 't-'+Date.now();
       chatContainer.insertAdjacentHTML('beforeend', `<div id="${tid}" class="max-w-3xl mx-auto flex gap-6 mb-12 msg-animate px-4"><div class="w-10 h-10 rounded-xl overflow-hidden"><img src="${LOGO_URL}" class="w-full h-full object-cover"></div><div class="flex gap-1.5 items-center"><span class="w-1.5 h-1.5 bg-white rounded-full animate-bounce"></span><span class="w-1.5 h-1.5 bg-white rounded-full animate-bounce [animation-delay:0.2s]"></span><span class="w-1.5 h-1.5 bg-white rounded-full animate-bounce [animation-delay:0.4s]"></span></div></div>`);
+      chatContainer.scrollTo({ top: chatContainer.scrollHeight, behavior: 'smooth' });
 
       try {
         const res = await fetch("https://nasoroai-production.up.railway.app/ai", { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ message: msg, images: snapImg, model: currentModel }) });
         const data = await res.json();
         document.getElementById(tid).remove();
-        postMessage(data.reply || "Error", 'nasoro');
+        postMessage(data.reply || "Error.", 'nasoro');
       } catch { document.getElementById(tid).remove(); postMessage("Connection lost.", 'nasoro'); }
     }
 
     sendAction.addEventListener('click', handleSend);
     chatField.addEventListener('keydown', e => { if(e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSend(); } });
     setModel('nasoro-2');
-  </script>
+</script>
 </body>
-  </html>
-  
+</html>
