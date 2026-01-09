@@ -68,8 +68,8 @@
       </button>
 
       <button onclick="setModel('nasoro-2-chat')" id="btn-chat" class="w-full flex items-center justify-between p-3.5 rounded-2xl text-sm transition text-zinc-400 hover:bg-white/5">
-          <div class="flex items-center gap-3"><i class="fa-solid fa-masks-theater text-xs"></i> Nasoro 2 Chat</div>
-          <span class="text-[9px] bg-indigo-500 text-white px-2 py-0.5 rounded-full">RP</span>
+          <div class="flex items-center gap-3"><i class="fa-solid fa-masks-theater text-xs text-indigo-400"></i> Nasoro 2 Chat</div>
+          <span class="text-[9px] bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 px-2 py-0.5 rounded-full uppercase font-bold">16K RP</span>
       </button>
 
       <div id="chat-history-list" class="mt-8 space-y-1 border-t border-white/5 pt-4"></div>
@@ -86,7 +86,7 @@
     <div id="chat-container" class="flex-1 overflow-y-auto px-6 pt-6 pb-48">
       <div id="welcome-ui" class="max-w-xl mx-auto mt-24 text-center">
         <h1 class="text-6xl font-extrabold tracking-tighter mb-4">Nasoro</h1>
-        <p class="text-zinc-500 text-lg">Choose a model to begin.</p>
+        <p class="text-zinc-500 text-lg">Intelligence refined.</p>
       </div>
     </div>
 
@@ -118,6 +118,7 @@
     let currentChatId = Date.now();
     let allChats = JSON.parse(localStorage.getItem('nasoro_history') || '{}');
 
+    // --- HISTORY LOGIC ---
     function saveCurrentChat() {
       const messages = Array.from(chatContainer.children).filter(el => el.classList.contains('msg-animate')).map(el => el.outerHTML);
       if (messages.length > 0) {
@@ -131,12 +132,27 @@
     function renderHistory() {
       const ids = Object.keys(allChats).sort((a, b) => b - a);
       historyList.innerHTML = ids.length ? `<p class="text-[10px] uppercase tracking-[0.3em] text-zinc-600 font-bold px-2 mb-2">History</p>` + 
-        ids.map(id => `<button onclick="loadChat('${id}')" class="w-full text-left p-3 rounded-xl text-xs text-zinc-400 hover:bg-white/5 truncate"><i class="fa-regular fa-message mr-2"></i>${allChats[id].title}</button>`).join('') : '';
+        ids.map(id => `<button onclick="loadChat('${id}')" class="w-full text-left p-3 rounded-xl text-xs text-zinc-400 hover:bg-white/5 truncate transition group"><i class="fa-regular fa-message mr-2 opacity-50 group-hover:opacity-100"></i>${allChats[id].title}</button>`).join('') : '';
     }
 
-    window.loadChat = (id) => { saveCurrentChat(); currentChatId = id; welcomeUi.classList.add('hidden'); chatContainer.innerHTML = allChats[id].html.join(''); chatContainer.scrollTo({ top: chatContainer.scrollHeight }); if(window.innerWidth < 768) closeSidebar(); };
-    window.startNewChat = () => { saveCurrentChat(); currentChatId = Date.now(); chatContainer.innerHTML = ''; welcomeUi.classList.remove('hidden'); if(window.innerWidth < 768) closeSidebar(); };
+    window.loadChat = (id) => { 
+        saveCurrentChat(); 
+        currentChatId = id; 
+        welcomeUi.classList.add('hidden'); 
+        chatContainer.innerHTML = allChats[id].html.join(''); 
+        chatContainer.scrollTo({ top: chatContainer.scrollHeight }); 
+        if(window.innerWidth < 768) closeSidebar(); 
+    };
 
+    window.startNewChat = () => { 
+        saveCurrentChat(); 
+        currentChatId = Date.now(); 
+        chatContainer.innerHTML = ''; 
+        welcomeUi.classList.remove('hidden'); 
+        if(window.innerWidth < 768) closeSidebar(); 
+    };
+
+    // --- UI HELPERS ---
     function setModel(modelKey) {
       currentModel = modelKey;
       ['btn-lite', 'btn-std', 'btn-pro', 'btn-chat'].forEach(id => {
@@ -144,13 +160,15 @@
         if(btn) btn.className = "w-full flex items-center justify-between p-3.5 rounded-2xl text-sm transition text-zinc-400 hover:bg-white/5";
       });
       const mapping = { 'nasoro-2-lite': 'btn-lite', 'nasoro-2-pro': 'btn-pro', 'nasoro-2-chat': 'btn-chat', 'nasoro-2': 'btn-std' };
-      document.getElementById(mapping[modelKey]).className = "w-full flex items-center justify-between p-3.5 rounded-2xl text-sm transition bg-white text-black font-bold shadow-lg";
+      const activeBtn = document.getElementById(mapping[modelKey]);
+      if(activeBtn) activeBtn.className = "w-full flex items-center justify-between p-3.5 rounded-2xl text-sm transition bg-white text-black font-bold shadow-lg";
       if(window.innerWidth < 768) closeSidebar();
     }
 
     function openSidebar() { sidebar.classList.add('sidebar-active'); overlay.classList.add('overlay-visible'); }
     function closeSidebar() { sidebar.classList.remove('sidebar-active'); overlay.classList.remove('overlay-visible'); }
 
+    // --- ATTACHMENTS ---
     imgInput.addEventListener('change', (e) => {
       Array.from(e.target.files).forEach(file => {
         const r = new FileReader();
@@ -165,6 +183,7 @@
     }
     window.removeImg = (i) => { attachments.splice(i, 1); renderTray(); };
 
+    // --- CORE MESSAGING ---
     function postMessage(content, role, imgs = []) {
       welcomeUi.classList.add('hidden');
       const isNas = role === 'nasoro';
