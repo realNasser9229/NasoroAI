@@ -15,10 +15,10 @@ let conversationHistory = [];
 
 const getModelID = (nasoroModel) => {
   switch (nasoroModel) {
-    case "nasoro-2-lite": return "gpt-4o";
-    case "nasoro-2-pro": return "gpt-4.1"; 
+    case "nasoro-2-lite": return "gpt-4o-mini";
+    case "nasoro-2-pro": return "gpt-4o"; 
     case "nasoro-2-chat": return "gpt-3.5-turbo-16k"; // Now using 16k for long memory
-    default: return "gpt-4.1";
+    default: return "gpt-4o-mini";
   }
 };
 
