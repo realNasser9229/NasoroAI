@@ -18,7 +18,7 @@ const getModelID = (nasoroModel) => {
     case "nasoro-2-lite": return "gpt-4o-mini";
     case "nasoro-2-pro": return "gpt-4o"; 
     case "nasoro-2-chat": return "gpt-3.5-turbo-16k"; // Now using 16k for long memory
-    default: return "gpt-4o-mini";
+    default: return "gpt-4o";
   }
 };
 
@@ -38,12 +38,12 @@ app.post("/ai", async (req, res) => {
 
     // Images require vision-capable models (gpt-4o variants)
     if (images?.length > 0) {
-      targetModel = "gpt-4o-mini";
+      targetModel = "gpt-4o";
     }
 
     const messages = [
       { role: "system", content: systemInstruction },
-      ...conversationHistory.slice(-30) // Increased memory for the 16k model
+      ...conversationHistory.slice(-40) // Increased memory for the 16k model
     ];
 
     const userContent = [];
@@ -57,7 +57,7 @@ app.post("/ai", async (req, res) => {
     const response = await openai.chat.completions.create({
       model: targetModel,
       messages: messages,
-      max_tokens: 1500 // Higher token limit for longer creative responses
+      max_tokens: 1600 // Higher token limit for longer creative responses
     });
 
     const aiReply = response.choices[0].message.content;
