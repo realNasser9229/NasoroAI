@@ -76,6 +76,12 @@
       50% { transform: translateY(-8px); }
     }
 
+    @keyframes shake {
+      0%, 100% { transform: translateX(0); }
+      25% { transform: translateX(-5px); }
+      75% { transform: translateX(5px); }
+    }
+
     .msg-anim { animation: slideUp 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
     .welcome-anim { animation: fadeInScale 0.8s cubic-bezier(0.34, 1.56, 0.64, 1) forwards; }
     
@@ -134,6 +140,11 @@
     .input-container:focus-within {
       border-color: rgba(255,255,255,0.2);
       box-shadow: 0 -20px 80px rgba(59, 130, 246, 0.2), inset 0 1px 0 rgba(255,255,255,0.15);
+    }
+
+    .input-container.rate-limited {
+      border-color: rgba(239, 68, 68, 0.5);
+      animation: shake 0.3s ease-in-out;
     }
 
     @media (min-width: 768px) { .input-container { border-radius: 40px; } }
@@ -196,9 +207,37 @@
       height: 300px;
     }
 
-    #send-action:hover {
+    #send-action:hover:not(:disabled) {
       transform: translateY(-2px);
       box-shadow: 0 12px 32px rgba(255,255,255,0.25);
+    }
+
+    #send-action:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+      background: linear-gradient(135deg, #d1d5db 0%, #9ca3af 100%);
+    }
+
+    /* Rate Limit Indicator */
+    .rate-limit-badge {
+      position: fixed;
+      bottom: 20px;
+      right: 20px;
+      background: rgba(239, 68, 68, 0.9);
+      backdrop-filter: blur(10px);
+      color: white;
+      padding: 12px 16px;
+      border-radius: 8px;
+      font-size: 12px;
+      font-weight: 600;
+      z-index: 1000;
+      display: none;
+      border: 1px solid rgba(239, 68, 68, 0.5);
+      animation: slideUp 0.3s ease-out;
+    }
+
+    .rate-limit-badge.show {
+      display: block;
     }
 
     /* Logo Animation */
@@ -318,11 +357,34 @@
       cursor: pointer;
       border: 1px solid rgba(255,255,255,0.1);
       transition: all 0.3s ease;
+      position: relative;
     }
 
     .image-gallery img:hover {
       transform: scale(1.05);
       border-color: rgba(59, 130, 246, 0.5);
+    }
+
+    .image-gallery img::after {
+      content: '✕';
+      position: absolute;
+      top: -8px;
+      right: -8px;
+      background: rgba(239, 68, 68, 0.9);
+      color: white;
+      width: 20px;
+      height: 20px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 12px;
+      opacity: 0;
+      transition: opacity 0.2s;
+    }
+
+    .image-gallery img:hover::after {
+      opacity: 1;
     }
 
     /* Overlay */
@@ -338,6 +400,7 @@
       .msg-group { gap: 12px !important; }
       #chat-container { padding: 8px 12px 160px 12px !important; }
       .input-container { margin: 0 8px 8px 8px; }
+      .rate-limit-badge { bottom: 10px; right: 10px; font-size: 11px; }
     }
 
     @media (max-width: 480px) {
@@ -362,17 +425,17 @@
       </div>
       <div>
         <h2 class="text-xl md:text-2xl font-black tracking-tighter text-white">Nasoro</h2>
-        <p class="text-[8px] md:text-[9px] text-zinc-500 font-black tracking-[0.4em] uppercase">Artificial Intelligence</p>
+        <p class="text-[8px] md:text-[9px] text-zinc-500 font-black tracking-[0.4em] uppercase">Intelligence Engine</p>
       </div>
     </div>
 
     <button onclick="startNewChat()" class="w-full flex items-center justify-center gap-3 py-3 md:py-4 rounded-2xl bg-gradient-to-r from-white to-gray-100 text-black font-black text-xs md:text-sm mb-8 md:mb-10 hover:shadow-[0_0_30px_rgba(255,255,255,0.2)] hover:scale-105 active:scale-95 transition-all">
-      <i class="fa-solid fa-plus-circle text-lg"></i> <span class="hidden sm:inline">New Session</span><span class="sm:hidden">New</span>
+      <i class="fa-solid fa-plus-circle text-lg"></i> <span class="hidden sm:inline">New Interaction</span><span class="sm:hidden">New</span>
     </button>
 
     <div class="flex-1 overflow-y-auto space-y-6 md:space-y-10 pr-2">
       <div>
-        <p class="text-[9px] md:text-[10px] uppercase tracking-[0.4em] text-zinc-600 font-black px-2 mb-4 md:mb-5">Oro Models</p>
+        <p class="text-[9px] md:text-[10px] uppercase tracking-[0.4em] text-zinc-600 font-black px-2 mb-4 md:mb-5">Neural Cores</p>
         <div class="space-y-2">
           <button onclick="setModel('nasoro-2-lite')" id="btn-lite" class="model-btn w-full flex items-center gap-3 md:gap-4 p-3 md:p-4 rounded-2xl text-left">
             <div class="icon-box icon-lite w-9 md:w-10 h-9 md:h-10 rounded-xl flex items-center justify-center text-black transition-all hover:scale-110 flex-shrink-0">
@@ -390,7 +453,7 @@
             </div>
             <div class="min-w-0">
               <p class="text-xs md:text-sm font-bold truncate">Nasoro 2</p>
-              <p class="text-[8px] md:text-[10px] opacity-50 truncate">Balanced, ideal.</p>
+              <p class="text-[8px] md:text-[10px] opacity-50 truncate">Balanced intelligence.</p>
             </div>
           </button>
 
@@ -451,7 +514,7 @@
     </div>
 
     <div class="absolute bottom-0 left-0 w-full p-2 md:p-10 flex justify-center pointer-events-none z-[100]">
-      <div class="w-full max-w-5xl input-container p-2 md:p-2 pointer-events-auto">
+      <div id="input-container" class="w-full max-w-5xl input-container p-2 md:p-2 pointer-events-auto">
         <div id="image-preview-container" class="image-gallery px-2 md:px-4 pt-2"></div>
         <div class="flex items-end gap-2 md:gap-3 px-2 md:px-4 py-2">
           <label class="w-12 h-12 md:w-14 md:h-14 flex items-center justify-center rounded-full hover:bg-white/10 cursor-pointer text-zinc-500 transition-all hover:text-white hover:scale-110 flex-shrink-0">
@@ -468,6 +531,7 @@
   </main>
 
   <div id="overlay" onclick="closeSidebar()" class="fixed inset-0 bg-black/95 z-[998] hidden opacity-0 transition-opacity"></div>
+  <div id="rate-limit-badge" class="rate-limit-badge"></div>
 
   <script>
     const chatContainer = document.getElementById('chat-container');
@@ -479,11 +543,53 @@
     const historyList = document.getElementById('history-list');
     const imgInput = document.getElementById('img-input');
     const imagePreviewContainer = document.getElementById('image-preview-container');
+    const inputContainer = document.getElementById('input-container');
+    const rateLimitBadge = document.getElementById('rate-limit-badge');
 
     let currentChatId = Date.now();
     let currentModel = 'nasoro-2';
     let allChats = JSON.parse(localStorage.getItem('nasoro_ultra_archive') || '{}');
     let selectedImages = [];
+
+    // Rate Limiting & Anti-Spam
+    let lastRequestTime = 0;
+    const MIN_REQUEST_INTERVAL = 1000; // 1 second minimum between requests
+    const MAX_REQUESTS_PER_MINUTE = 30; // Max 30 requests per minute
+    let requestTimestamps = [];
+
+    function showRateLimitWarning(message) {
+      rateLimitBadge.textContent = message;
+      rateLimitBadge.classList.add('show');
+      inputContainer.classList.add('rate-limited');
+      setTimeout(() => {
+        rateLimitBadge.classList.remove('show');
+        inputContainer.classList.remove('rate-limited');
+      }, 3000);
+    }
+
+    function checkRateLimit() {
+      const now = Date.now();
+      const oneMinuteAgo = now - 60000;
+
+      // Remove old timestamps
+      requestTimestamps = requestTimestamps.filter(t => t > oneMinuteAgo);
+
+      // Check if too many requests in last minute
+      if (requestTimestamps.length >= MAX_REQUESTS_PER_MINUTE) {
+        showRateLimitWarning(`⚠️ Rate limited. Max ${MAX_REQUESTS_PER_MINUTE} requests/min`);
+        return false;
+      }
+
+      // Check minimum interval between requests
+      if (now - lastRequestTime < MIN_REQUEST_INTERVAL) {
+        showRateLimitWarning('⏱️ Wait before sending another message');
+        return false;
+      }
+
+      requestTimestamps.push(now);
+      lastRequestTime = now;
+      return true;
+    }
 
     function openSidebar() { 
       sidebar.classList.add('sidebar-active'); 
@@ -586,6 +692,15 @@
     async function handleSend() {
       const msg = chatField.value.trim();
       if(!msg && selectedImages.length === 0) return;
+
+      // Check rate limit
+      if (!checkRateLimit()) {
+        sendAction.disabled = true;
+        setTimeout(() => { sendAction.disabled = false; }, MIN_REQUEST_INTERVAL);
+        return;
+      }
+
+      sendAction.disabled = true;
       
       postMessage(msg || '[Sent Image]', 'user', selectedImages);
       chatField.value = '';
@@ -609,6 +724,8 @@
         console.error(err);
         document.getElementById(tid).remove(); 
         postMessage("Neural Link Severed.", 'nasoro'); 
+      } finally {
+        sendAction.disabled = false;
       }
     }
 
