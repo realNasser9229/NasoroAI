@@ -15,10 +15,10 @@ let conversationHistory = [];
 
 const getModelID = (nasoroModel) => {
   switch (nasoroModel) {
-    case "nasoro-2-lite": return "gpt-3.5-turbo";
-    case "nasoro-2-pro": return "gpt-4o"; 
+    case "nasoro-2-lite": return "gpt-4o";
+    case "nasoro-2-pro": return "gpt-4.1"; 
     case "nasoro-2-chat": return "gpt-3.5-turbo-16k"; // Now using 16k for long memory
-    default: return "gpt-4o-mini";
+    default: return "gpt-4.1";
   }
 };
 
@@ -28,12 +28,12 @@ app.post("/ai", async (req, res) => {
   try {
     let targetModel = getModelID(model);
     
-    let systemInstruction = "You are Nasoro, a chill AI created by Nas9229alt.";
+    let systemInstruction = "You are Nasoro, a chill AI created by Nas9229alt. When user gives you a prompt; Read, understand write file of what user wants in your mind, generate options, read, choose option, check option and improve then proceed your final answer.";
     
     if (model === "nasoro-2-chat") {
       systemInstruction = `You are Nasoro 2 Chat, a master of Roleplay. 
       Stay in character and use asterisks *for actions*. 
-      You have an extended memory (16k) to keep track of long stories.`;
+      You have an extended memory (16k) to keep track of long stories. But always roleplay. Don't break character.`;
     } 
 
     // Images require vision-capable models (gpt-4o variants)
