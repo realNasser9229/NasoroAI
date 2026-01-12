@@ -1,7 +1,7 @@
 import express from "express";
 import cors from "cors";
 import dotenv from "dotenv";
-import OpenAI from "openai";
+import fetch from "node-fetch"; // Groq-compatible HTTP requests
 
 dotenv.config();
 
@@ -9,7 +9,7 @@ const app = express();
 app.use(cors());
 app.use(express.json({ limit: "50mb" }));
 
-const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+const GROQ_KEY = process.env.OPENAI_API_KEY; // Keep same variable, just change value in .env
 
 /* ============================
    USER SESSIONS (PER USER)
@@ -46,16 +46,16 @@ const RESET_TIME = 60 * 60 * 1000;
 ============================ */
 function getModelID(nasoroModel) {
   switch (nasoroModel) {
-    case "nasoro-2-fast":
+    case "nasoro-2-fast":     // Oro 2 Fast
       return "gpt-4o-mini";
-    case "nasoro-2":
-      return "gpt-4o-mini";
-    case "nasoro-2-pro":
-      return "gpt-4o";
-    case "nasoro-2-chat":
+    case "nasoro-2":          // Oro 2
+      return "gpt-oss-20b";
+    case "nasoro-2-pro":      // Oro 2 Pro
+      return "gpt-oss-120b";
+    case "nasoro-2-chat":     // Oro 2 Chat
       return "gpt-3.5-turbo-16k";
     default:
-      return "gpt-4o-mini";
+      return "gpt-4o-mini";   // fallback
   }
 }
 
@@ -98,7 +98,7 @@ Use *asterisks* for actions.
 Never break character.`;
     }
 
-    // images need vision model
+    // If images are sent, switch to vision-capable model
     if (images?.length > 0) {
       targetModel = "gpt-4o";
     }
@@ -111,33 +111,28 @@ Never break character.`;
       ...session.history.slice(-40)
     ];
 
-    const userContent = [];
-
     if (message) {
-      userContent.push({ type: "text", text: message });
+      messages.push({ role: "user", content: message });
     }
-
-    if (images?.length > 0) {
-      images.forEach((img) =>
-        userContent.push({
-          type: "image_url",
-          image_url: { url: img }
-        })
-      );
-    }
-
-    messages.push({ role: "user", content: userContent });
 
     /* ============================
-       OPENAI REQUEST
+       GROQ API REQUEST
     ============================ */
-    const response = await openai.chat.completions.create({
-      model: targetModel,
-      messages,
-      max_tokens: 1600
+    const groqResponse = await fetch("https://api.groq.com/openai/v1/chat/completions", {
+      method: "POST",
+      headers: {
+        "Authorization": `Bearer ${GROQ_KEY}`,
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        model: targetModel,
+        messages,
+        max_tokens: 1600
+      })
     });
 
-    const aiReply = response.choices[0].message.content;
+    const data = await groqResponse.json();
+    const aiReply = data.choices?.[0]?.message?.content || "No reply generated.";
 
     /* ============================
        SAVE MEMORY (PER USER)
