@@ -35,7 +35,7 @@ function getSession(userId) {
   return userSessions.get(userId);
 }
 
-const MAX_REQUESTS_PER_HOUR = 60; // Slightly increased for Pro usage
+const MAX_REQUESTS_PER_HOUR = 60; 
 const RESET_TIME = 60 * 60 * 1000;
 
 /* ============================
@@ -52,15 +52,16 @@ function getModelID(nasoroModel) {
     case "nasoro-2-chat":     
       return "llama3-70b-8192";
       
-    // --- NEW SPECIALIST MODELS ---
+    // --- SPECIALIST MODELS ---
     case "nasoro-2-coder":
-      // Using Qwen 2.5 32B (Alibaba) - Best for Code
       return "qwen-2.5-32b"; 
       
     case "nasoro-2-scientist":
-      // Mapped to DeepSeek R1 (Reasoning) or Llama 3.3. 
-      // Note: "gpt-oss-120b" is not a valid Groq ID, using best alternative.
       return "deepseek-r1-distill-llama-70b"; 
+
+    case "nasoro-2-image":
+      // We use the fast Llama model to "Engineering the Prompt" for the image
+      return "llama-3.1-8b-instant";
       
     default:
       return "llama-3.1-8b-instant"; 
@@ -75,6 +76,7 @@ app.post("/ai", async (req, res) => {
   const userId = getUserId(req);
   const session = getSession(userId);
 
+  // ---- rate limit reset ----
   if (Date.now() - session.lastReset > RESET_TIME) {
     session.requests = 0;
     session.lastReset = Date.now();
@@ -90,52 +92,70 @@ app.post("/ai", async (req, res) => {
   try {
     let targetModel = getModelID(model);
     let systemInstruction = "You are Nasoro, a chill AI by OpenOro™ (Nas9229alt/RazNas). Be helpful and smart.";
+    let temperature = 0.7; // Default temp
 
-    // Custom System Prompts
+    // --- CUSTOM SYSTEM PROMPTS ---
     if (model === "nasoro-2-chat") {
       systemInstruction = `You are Nasoro 2 Chat. Stay in character always. Use *asterisks* for actions.`;
-    } else if (model === "nasoro-2-coder") {
+    } 
+    else if (model === "nasoro-2-coder") {
       systemInstruction = `You are Nasoro Coder. You are an expert Software Engineer. Provide clean, optimized code. Explain logic briefly.`;
-    } else if (model === "nasoro-2-scientist") {
+    } 
+    else if (model === "nasoro-2-scientist") {
       systemInstruction = `You are Nasoro Scientist. You are a PhD-level researcher. Focus on facts, scientific method, and deep analysis.`;
+      temperature = 0.6; // Lower temp for factual accuracy
+    } 
+    else if (model === "nasoro-2-image") {
+      // PROMPT ENGINEERING FOR POLLINATIONS
+      systemInstruction = `You are the Oro 2 Image engine. 
+      Your ONLY job is to create a high-quality Markdown image link based on user requests.
+      
+      OUTPUT FORMAT: 
+      ![Image](https://image.pollinations.ai/prompt/{description}?width=1024&height=1024&nologo=true&seed={random})
+      
+      INSTRUCTIONS:
+      1. Take the user's simple request and enhance it with artistic details (e.g., 'cinematic lighting, 8k, hyperrealistic, detailed texture').
+      2. Replace {description} with your enhanced text (ensure spaces are replaced with %20 or underscores).
+      3. Replace {random} with a random 5-digit number to ensure uniqueness.
+      4. DO NOT write any conversational text. Output ONLY the markdown link.`;
+      
+      temperature = 1.0; // Max creativity for art prompts
     }
 
     // Vision Switch (Overrides textual models if image is present)
     if (images?.length > 0) {
       targetModel = "llama-3.2-11b-vision-preview";
-      // Vision works best with standard prompt
       if(model === "nasoro-2-coder") systemInstruction += " Analyze the code/diagram in this image.";
     }
 
     /* ============================
-       HISTORY LIMITS (The Update)
+       HISTORY LIMITS
     ============================ */
-    // Default limit
     let historyLimit = 40;
     
-    // Strict limit for Pro and Scientist to save resources/tokens
+    // Strict limit for Pro and Scientist to save resources
     if (model === "nasoro-2-pro" || model === "nasoro-2-scientist") {
       historyLimit = 15;
+    }
+    // Image mode doesn't need much history
+    if (model === "nasoro-2-image") {
+      historyLimit = 5; 
     }
 
     /* ============================
        MESSAGE CONSTRUCTION
     ============================ */
-    // 1. System Prompt
     const messages = [
       { role: "system", content: systemInstruction },
-      ...session.history.slice(-historyLimit) // Apply the limit
+      ...session.history.slice(-historyLimit)
     ];
 
-    // 2. User Message (Handle Text + Vision)
     if (images?.length > 0) {
       const contentArray = [];
       if (message) contentArray.push({ type: "text", text: message });
-      
       images.forEach(img => {
         contentArray.push({ type: "image_url", image_url: { url: img } });
       });
-      
       messages.push({ role: "user", content: contentArray });
     } else {
       if (message) messages.push({ role: "user", content: message });
@@ -153,14 +173,13 @@ app.post("/ai", async (req, res) => {
       body: JSON.stringify({
         model: targetModel,
         messages,
-        max_tokens: model === "nasoro-2-coder" ? 2048 : 1600, // Give coder more room
-        temperature: model === "nasoro-2-scientist" ? 0.5 : 0.7 // Scientist needs to be more precise
+        max_tokens: model === "nasoro-2-coder" ? 2048 : 1600,
+        temperature: temperature
       })
     });
 
     const data = await groqResponse.json();
     
-    // Debugging if needed
     if(data.error) {
        console.error("Groq Error:", data.error);
        return res.status(500).json({ reply: "Model Error: " + data.error.message });
@@ -171,11 +190,9 @@ app.post("/ai", async (req, res) => {
     /* ============================
        SAVE MEMORY
     ============================ */
-    // Save simpler version for history (no base64 images to save RAM)
     session.history.push({ role: "user", content: message || "[Image Sent]" });
     session.history.push({ role: "assistant", content: aiReply });
 
-    // Enforce history limit in memory
     if (session.history.length > 40) {
       session.history.splice(0, session.history.length - 40);
     }
@@ -188,6 +205,16 @@ app.post("/ai", async (req, res) => {
   }
 });
 
+/* ============================
+   HEALTH CHECK
+============================ */
+app.get("/", (req, res) => {
+  res.send("Nasoro backend is alive.");
+});
+
+/* ============================
+   SERVER START
+============================ */
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => console.log(`Nasoro Backend Live on port ${PORT}`));
          
