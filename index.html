@@ -225,7 +225,17 @@
             </div>
           </button>
 
-           <button onclick="setModel('nasoro-2-chat')" id="btn-chat" class="model-btn w-full flex items-center gap-3 p-2 rounded-lg text-left">
+          <button onclick="setModel('nasoro-2-image')" id="btn-image" class="model-btn w-full flex items-center gap-3 p-2 rounded-lg text-left">
+            <div class="icon-box w-8 h-8 rounded-md bg-pink-500/10 text-pink-400 flex items-center justify-center transition-transform">
+              <i class="fa-solid fa-paint-brush text-xs"></i>
+            </div>
+            <div>
+              <p class="font-semibold text-zinc-200 text-xs">Oro 2 Image</p>
+              <p class="text-[10px] text-zinc-500">Flux Art Engine.</p>
+            </div>
+          </button>
+
+          <button onclick="setModel('nasoro-2-chat')" id="btn-chat" class="model-btn w-full flex items-center gap-3 p-2 rounded-lg text-left">
             <div class="icon-box w-8 h-8 rounded-md bg-amber-500/10 text-amber-400 flex items-center justify-center transition-transform">
               <i class="fa-solid fa-comments text-xs"></i>
             </div>
@@ -290,6 +300,7 @@
 
   <script>
     const API_URL = "https://nasoroai-production.up.railway.app/ai"; 
+    // Kept your logo link as requested
     const LOGO_URL = "https://i.postimg.cc/SRc9H0j8/Screenshot-2026-01-06-18-13-41-32-74158c69f0af68fbf38b28b8774cd491.jpg";
 
     const chatContainer = document.getElementById('chat-container');
@@ -325,7 +336,8 @@
         'nasoro-2-pro': 'btn-pro',
         'nasoro-2-chat': 'btn-chat',
         'nasoro-2-coder': 'btn-coder',
-        'nasoro-2-scientist': 'btn-scientist'
+        'nasoro-2-scientist': 'btn-scientist',
+        'nasoro-2-image': 'btn-image' // ADDED IMAGE MODEL MAPPING
       };
       
       const btnId = btnMap[key];
@@ -414,7 +426,7 @@
       selectedImages = []; 
       renderImages();
       if(window.innerWidth < 768) closeSidebar(); 
-    };
+        };
 
     function postMessage(content, role, images = []) {
       welcomeUi.classList.add('hidden');
