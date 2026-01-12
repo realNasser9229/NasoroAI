@@ -3,737 +3,567 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-  <title>Nasoro AI | © 2026-2027, OpenOro™ & OpenAI™</title>
+  <title>Nasoro AI | Neural Interface</title>
 
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+  
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.7.0/styles/tokyo-night-dark.min.css">
   <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.7.0/highlight.min.js"></script>
+  
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 
   <script>
     tailwind.config = {
-      theme: { extend: { colors: { nasoro: { bg: '#020202', card: '#080808', border: 'rgba(255,255,255,0.08)' } } } }
+      theme: { 
+        extend: { 
+          colors: { 
+            nasoro: { 
+              bg: '#020202', 
+              card: '#0a0a0a', 
+              border: 'rgba(255,255,255,0.08)',
+              accent: '#3b82f6'
+            } 
+          },
+          fontFamily: {
+            sans: ['Plus Jakarta Sans', 'sans-serif'],
+            mono: ['JetBrains Mono', 'monospace'],
+          }
+        } 
+      }
     }
   </script>
 
   <style>
-    @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap');
+    @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap');
     
-    * { box-sizing: border-box; }
+    * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
     body { background-color: #020202; color: #f4f4f5; font-family: 'Plus Jakarta Sans', sans-serif; height: 100vh; overflow: hidden; margin: 0; }
     
-    /* Premium Background FX */
+    /* --- Background FX --- */
     .bg-mesh {
       position: fixed; inset: 0; z-index: 0; pointer-events: none;
       background: 
-        radial-gradient(circle at 10% 10%, rgba(59, 130, 246, 0.08) 0%, transparent 40%),
-        radial-gradient(circle at 90% 90%, rgba(168, 85, 247, 0.08) 0%, transparent 40%);
-      animation: meshShift 20s ease-in-out infinite;
+        radial-gradient(circle at 15% 15%, rgba(59, 130, 246, 0.05) 0%, transparent 45%),
+        radial-gradient(circle at 85% 85%, rgba(139, 92, 246, 0.05) 0%, transparent 45%);
     }
 
-    @keyframes meshShift {
-      0%, 100% { opacity: 0.5; }
-      50% { opacity: 1; }
-    }
-
+    /* --- Glass Components --- */
     .glass-sidebar { 
-      background: rgba(5, 5, 5, 0.85); 
-      backdrop-filter: blur(40px); 
-      border-right: 1px solid rgba(255,255,255,0.08);
-      box-shadow: 40px 0 80px rgba(0,0,0,0.5);
+      background: rgba(5, 5, 5, 0.95); 
+      border-right: 1px solid rgba(255,255,255,0.06);
     }
     .glass-header { 
-      background: rgba(2, 2, 2, 0.7); 
-      backdrop-filter: blur(20px); 
-      border-bottom: 1px solid rgba(255,255,255,0.05);
+      background: rgba(2, 2, 2, 0.8); 
+      backdrop-filter: blur(12px); 
+      border-bottom: 1px solid rgba(255,255,255,0.06);
     }
 
-    /* Model Icon Gradients */
-    .icon-lite { background: linear-gradient(135deg, #a5f3fc 0%, #22d3ee 100%); }
-    .icon-std { background: linear-gradient(135deg, #ffffff 0%, #9ca3af 100%); }
-    .icon-pro { background: linear-gradient(135deg, #c4b5fd 0%, #8b5cf6 100%); }
-    .icon-chat { background: linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%); }
-
-    /* Enhanced Animations */
+    /* --- Animations --- */
     @keyframes slideUp { 
-      from { opacity: 0; transform: translateY(20px) scale(0.95); } 
-      to { opacity: 1; transform: translateY(0) scale(1); } 
+      from { opacity: 0; transform: translateY(15px); } 
+      to { opacity: 1; transform: translateY(0); } 
     }
     
-    @keyframes fadeInScale {
-      from { opacity: 0; transform: scale(0.9); }
-      to { opacity: 1; transform: scale(1); }
+    @keyframes pulse-ring {
+      0% { transform: scale(0.8); opacity: 0.5; }
+      100% { transform: scale(2); opacity: 0; }
     }
 
-    @keyframes glow {
-      0%, 100% { filter: drop-shadow(0 0 10px rgba(59, 130, 246, 0.3)); }
-      50% { filter: drop-shadow(0 0 20px rgba(59, 130, 246, 0.6)); }
-    }
-
-    @keyframes float {
-      0%, 100% { transform: translateY(0px); }
-      50% { transform: translateY(-8px); }
-    }
-
-    @keyframes shake {
-      0%, 100% { transform: translateX(0); }
-      25% { transform: translateX(-5px); }
-      75% { transform: translateX(5px); }
-    }
-
-    .msg-anim { animation: slideUp 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
-    .welcome-anim { animation: fadeInScale 0.8s cubic-bezier(0.34, 1.56, 0.64, 1) forwards; }
-    
+    .msg-anim { animation: slideUp 0.4s cubic-bezier(0.2, 0.9, 0.3, 1) forwards; }
     .sidebar-active { transform: translateX(0) !important; }
     
+    /* --- Model Buttons --- */
     .model-btn { 
-      transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1); 
-      border: 1px solid rgba(255,255,255,0.08);
-      position: relative;
-      overflow: hidden;
+      transition: all 0.2s ease; 
+      border: 1px solid transparent;
     }
-
-    .model-btn::before {
-      content: '';
-      position: absolute;
-      top: 0;
-      left: -100%;
-      width: 100%;
-      height: 100%;
-      background: linear-gradient(90deg, transparent, rgba(255,255,255,0.1), transparent);
-      transition: left 0.5s;
-    }
-
-    .model-btn:hover::before { left: 100%; }
-    .model-btn:hover { 
-      background: rgba(255,255,255,0.08); 
-      transform: translateX(4px);
-      box-shadow: 0 8px 24px rgba(59, 130, 246, 0.15);
-    }
+    .model-btn:hover { background: rgba(255,255,255,0.05); }
     .model-btn.active { 
-      background: linear-gradient(135deg, #fff 0%, #f3f4f6 100%) !important; 
-      color: #000 !important; 
-      font-weight: 800; 
-      border-color: #fff;
-      box-shadow: 0 20px 40px rgba(255,255,255,0.2);
-      animation: glow 2s ease-in-out infinite;
+      background: rgba(255,255,255,0.08); 
+      border-color: rgba(255,255,255,0.1);
+      box-shadow: 0 4px 12px rgba(0,0,0,0.2);
     }
-    .model-btn.active .icon-box { color: #fff; background: #000 !important; }
+    .model-btn.active .icon-box { transform: scale(1.1); }
 
-    .nasoro-glow { 
-      border-left: 3px solid #fff; 
-      padding-left: 1.5rem; 
-      filter: drop-shadow(0 0 10px rgba(255,255,255,0.08));
-      animation: glow 3s ease-in-out infinite;
+    /* --- Input Area --- */
+    .input-wrapper {
+      background: #0f0f0f;
+      border: 1px solid rgba(255,255,255,0.1);
+      transition: border-color 0.2s, box-shadow 0.2s;
+    }
+    .input-wrapper:focus-within {
+      border-color: rgba(255,255,255,0.25);
+      box-shadow: 0 0 20px rgba(59, 130, 246, 0.1);
     }
     
-    /* Input Capsule */
-    .input-container {
-      background: rgba(10, 10, 10, 0.9);
-      backdrop-filter: blur(50px);
-      border: 1px solid rgba(255,255,255,0.12);
-      box-shadow: 0 -20px 60px rgba(0,0,0,0.8), inset 0 1px 0 rgba(255,255,255,0.1);
-      transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-    }
-
-    .input-container:focus-within {
-      border-color: rgba(255,255,255,0.2);
-      box-shadow: 0 -20px 80px rgba(59, 130, 246, 0.2), inset 0 1px 0 rgba(255,255,255,0.15);
-    }
-
-    .input-container.rate-limited {
-      border-color: rgba(239, 68, 68, 0.5);
-      animation: shake 0.3s ease-in-out;
-    }
-
-    @media (min-width: 768px) { .input-container { border-radius: 40px; } }
-    @media (max-width: 768px) { .input-container { border-radius: 30px 30px 0 0; } }
-
-    .live-pulse { 
-      width: 6px; 
-      height: 6px; 
-      background: #4ade80; 
-      border-radius: 50%; 
-      animation: pulse 1.5s infinite;
-      box-shadow: 0 0 10px rgba(74, 222, 128, 0.6);
-    }
-
-    @keyframes pulse { 
-      0% { 
-        transform: scale(1); 
-        opacity: 1; 
-        box-shadow: 0 0 0 0 rgba(74, 222, 128, 0.7); 
-      } 
-      70% { 
-        transform: scale(1.2); 
-        opacity: 0.5; 
-        box-shadow: 0 0 0 15px rgba(74, 222, 128, 0); 
-      } 
-      100% { 
-        transform: scale(1); 
-        opacity: 1;
-        box-shadow: 0 0 0 0 rgba(74, 222, 128, 0);
-      } 
-    }
-
-    /* Button Enhancements */
-    button {
-      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-    }
-
-    #send-action {
-      background: linear-gradient(135deg, #fff 0%, #f3f4f6 100%);
-      box-shadow: 0 8px 24px rgba(255,255,255,0.15);
-      position: relative;
-      overflow: hidden;
-    }
-
-    #send-action::before {
-      content: '';
-      position: absolute;
-      top: 50%;
-      left: 50%;
-      width: 0;
-      height: 0;
-      background: rgba(0,0,0,0.1);
-      border-radius: 50%;
-      transform: translate(-50%, -50%);
-      transition: width 0.6s, height 0.6s;
-    }
-
-    #send-action:active::before {
-      width: 300px;
-      height: 300px;
-    }
-
-    #send-action:hover:not(:disabled) {
-      transform: translateY(-2px);
-      box-shadow: 0 12px 32px rgba(255,255,255,0.25);
-    }
-
-    #send-action:disabled {
-      opacity: 0.5;
-      cursor: not-allowed;
-      background: linear-gradient(135deg, #d1d5db 0%, #9ca3af 100%);
-    }
-
-    /* Rate Limit Indicator */
-    .rate-limit-badge {
-      position: fixed;
-      bottom: 20px;
-      right: 20px;
-      background: rgba(239, 68, 68, 0.9);
-      backdrop-filter: blur(10px);
-      color: white;
-      padding: 12px 16px;
-      border-radius: 8px;
-      font-size: 12px;
-      font-weight: 600;
-      z-index: 1000;
-      display: none;
-      border: 1px solid rgba(239, 68, 68, 0.5);
-      animation: slideUp 0.3s ease-out;
-    }
-
-    .rate-limit-badge.show {
-      display: block;
-    }
-
-    /* Logo Animation */
-    .logo-container {
-      animation: float 3s ease-in-out infinite;
-    }
-
-    .logo-container:hover {
-      animation: none;
-      transform: scale(1.05);
-    }
-
-    /* Welcome Screen */
-    .welcome-ui {
-      animation: fadeInScale 0.8s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
-    }
-
-    .welcome-ui h1 {
-      background: linear-gradient(135deg, #fff 0%, #a0aec0 100%);
-      -webkit-background-clip: text;
-      -webkit-text-fill-color: transparent;
-      background-clip: text;
-      animation: slideUp 1s cubic-bezier(0.16, 1, 0.3, 1) forwards;
-      opacity: 0;
-      animation-delay: 0.2s;
-    }
-
-    .welcome-ui p {
-      animation: slideUp 1s cubic-bezier(0.16, 1, 0.3, 1) forwards;
-      opacity: 0;
-      animation-delay: 0.4s;
-    }
-
-    /* Smooth Scrollbar */
-    ::-webkit-scrollbar { width: 4px; }
-    ::-webkit-scrollbar-thumb { 
-      background: rgba(255,255,255,0.1); 
-      border-radius: 10px;
-      transition: background 0.3s ease;
-    }
+    /* --- Scrollbars --- */
+    ::-webkit-scrollbar { width: 6px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 10px; }
     ::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.2); }
 
-    /* History Item Hover */
-    .history-item {
-      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-      border-radius: 12px;
+    /* --- Markdown & Code --- */
+    .prose pre { 
+      background: #0d0d0d !important; 
+      border: 1px solid rgba(255,255,255,0.1);
+      border-radius: 8px;
       position: relative;
-      overflow: hidden;
+      margin-top: 1rem;
     }
-
-    .history-item::before {
-      content: '';
+    .prose code { font-family: 'JetBrains Mono', monospace; font-size: 0.9em; }
+    .prose p { margin-bottom: 0.8em; }
+    .prose ul { list-style-type: disc; padding-left: 1.5em; margin-bottom: 1em; }
+    .prose ol { list-style-type: decimal; padding-left: 1.5em; margin-bottom: 1em; }
+    .prose strong { color: white; font-weight: 700; }
+    
+    .copy-btn {
       position: absolute;
-      left: 0;
-      top: 0;
-      width: 3px;
-      height: 0;
-      background: linear-gradient(180deg, #3b82f6, #8b5cf6);
-      transition: height 0.3s ease;
+      top: 8px;
+      right: 8px;
+      background: rgba(255,255,255,0.1);
+      color: #aaa;
+      border-radius: 4px;
+      padding: 4px 8px;
+      font-size: 10px;
+      cursor: pointer;
+      transition: all 0.2s;
+      border: none;
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      font-weight: 600;
     }
+    .copy-btn:hover { background: rgba(255,255,255,0.2); color: white; }
 
-    .history-item:hover {
-      background: rgba(255,255,255,0.05);
-      transform: translateX(4px);
-    }
-
-    .history-item:hover::before {
-      height: 100%;
-    }
-
-    /* Chat Message Enhancements */
-    .msg-group {
-      animation: slideUp 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards;
-      opacity: 0;
-    }
-
-    .msg-group:nth-child(1) { animation-delay: 0s; }
-    .msg-group:nth-child(2) { animation-delay: 0.1s; }
-    .msg-group:nth-child(3) { animation-delay: 0.2s; }
-    .msg-group:nth-child(4) { animation-delay: 0.3s; }
-    .msg-group:nth-child(5) { animation-delay: 0.4s; }
-
-    /* Typing Indicator */
+    /* --- Typing Indicator --- */
     .typing-dot {
+      width: 6px; height: 6px; background: #666; border-radius: 50%;
       animation: bounce 1.4s infinite;
     }
-    .typing-dot:nth-child(1) { animation-delay: 0s; }
     .typing-dot:nth-child(2) { animation-delay: 0.2s; }
     .typing-dot:nth-child(3) { animation-delay: 0.4s; }
+    @keyframes bounce { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-4px); } }
 
-    @keyframes bounce {
-      0%, 80%, 100% { transform: scale(1); opacity: 0.5; }
-      40% { transform: scale(1.2); opacity: 1; }
-    }
-
-    /* Image Preview */
-    .image-preview {
-      max-width: 100%;
-      border-radius: 12px;
-      margin: 8px 0;
-      max-height: 300px;
-      object-fit: cover;
-      border: 1px solid rgba(255,255,255,0.1);
-    }
-
-    .image-gallery {
-      display: flex;
-      gap: 8px;
-      flex-wrap: wrap;
-      margin-bottom: 12px;
-    }
-
-    .image-gallery img {
-      max-width: 80px;
-      max-height: 80px;
-      border-radius: 8px;
-      cursor: pointer;
-      border: 1px solid rgba(255,255,255,0.1);
-      transition: all 0.3s ease;
-      position: relative;
-    }
-
-    .image-gallery img:hover {
-      transform: scale(1.05);
-      border-color: rgba(59, 130, 246, 0.5);
-    }
-
-    .image-gallery img::after {
-      content: '✕';
-      position: absolute;
-      top: -8px;
-      right: -8px;
-      background: rgba(239, 68, 68, 0.9);
-      color: white;
-      width: 20px;
-      height: 20px;
-      border-radius: 50%;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 12px;
-      opacity: 0;
-      transition: opacity 0.2s;
-    }
-
-    .image-gallery img:hover::after {
-      opacity: 1;
-    }
-
-    /* Overlay */
-    #overlay {
-      transition: opacity 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-    }
-
-    /* Mobile Responsive */
-    @media (max-width: 768px) {
-      .glass-sidebar { box-shadow: none; }
-      body { font-size: 14px; }
-      .welcome-ui h1 { font-size: 2.5rem !important; }
-      .msg-group { gap: 12px !important; }
-      #chat-container { padding: 8px 12px 160px 12px !important; }
-      .input-container { margin: 0 8px 8px 8px; }
-      .rate-limit-badge { bottom: 10px; right: 10px; font-size: 11px; }
-    }
-
-    @media (max-width: 480px) {
-      .welcome-ui h1 { font-size: 1.75rem !important; }
-      .model-btn { padding: 12px !important; }
-      .model-btn > div:last-child { display: none; }
+    /* --- Image Preview --- */
+    .img-preview-wrap { position: relative; display: inline-block; margin-right: 8px; }
+    .img-preview-wrap img { width: 60px; height: 60px; object-fit: cover; border-radius: 8px; border: 1px solid rgba(255,255,255,0.2); }
+    .img-remove { 
+      position: absolute; top: -5px; right: -5px; 
+      background: red; color: white; border-radius: 50%; 
+      width: 16px; height: 16px; font-size: 10px; 
+      display: flex; align-items: center; justify-content: center; cursor: pointer; 
     }
   </style>
 </head>
-<body class="flex flex-col md:flex-row h-screen">
+<body class="flex flex-col md:flex-row h-screen text-sm md:text-base">
+  
   <div class="bg-mesh"></div>
 
-  <script>
-    const LOGO_URL = "https://i.postimg.cc/SRc9H0j8/Screenshot-2026-01-06-18-13-41-32-74158c69f0af68fbf38b28b8774cd491.jpg";
-  </script>
-
-  <aside id="sidebar" class="fixed inset-y-0 left-0 w-[85%] md:w-[340px] -translate-x-full md:relative md:translate-x-0 glass-sidebar z-[1000] flex flex-col p-4 md:p-8 transition-transform duration-500">
-    <div class="flex items-center gap-5 mb-8 md:mb-12 px-2 group logo-container">
-      <div class="relative">
-        <img src="https://i.postimg.cc/SRc9H0j8/Screenshot-2026-01-06-18-13-41-32-74158c69f0af68fbf38b28b8774cd491.jpg" class="h-12 md:h-14 w-12 md:w-14 rounded-2xl object-cover shadow-2xl transition-all group-hover:scale-110 group-hover:shadow-[0_0_30px_rgba(59,130,246,0.4)] border border-white/10">
-        <div class="absolute -bottom-1 -right-1 live-pulse"></div>
+  <aside id="sidebar" class="fixed inset-y-0 left-0 w-[280px] -translate-x-full md:relative md:translate-x-0 glass-sidebar z-[50] flex flex-col transition-transform duration-300 ease-in-out">
+    
+    <div class="p-6 pb-2">
+      <div class="flex items-center gap-3 mb-6">
+        <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-500 to-violet-600 flex items-center justify-center shadow-lg shadow-blue-900/20">
+          <i class="fa-solid fa-cube text-white text-lg"></i>
+        </div>
+        <div>
+          <h1 class="font-bold text-lg tracking-tight text-white">Nasoro</h1>
+          <p class="text-[10px] text-zinc-500 font-mono uppercase tracking-widest">Neural v2.4</p>
+        </div>
       </div>
-      <div>
-        <h2 class="text-xl md:text-2xl font-black tracking-tighter text-white">Nasoro</h2>
-        <p class="text-[8px] md:text-[9px] text-zinc-500 font-black tracking-[0.4em] uppercase">Intelligence Engine</p>
-      </div>
+      
+      <button onclick="startNewChat()" class="w-full flex items-center gap-3 px-4 py-3 rounded-lg bg-white/5 hover:bg-white/10 text-zinc-200 transition-all border border-white/5 hover:border-white/10 group">
+        <div class="w-6 h-6 rounded-md bg-white/10 flex items-center justify-center group-hover:bg-white/20 transition-colors">
+          <i class="fa-solid fa-plus text-xs"></i>
+        </div>
+        <span class="font-medium text-sm">New Context</span>
+      </button>
     </div>
 
-    <button onclick="startNewChat()" class="w-full flex items-center justify-center gap-3 py-3 md:py-4 rounded-2xl bg-gradient-to-r from-white to-gray-100 text-black font-black text-xs md:text-sm mb-8 md:mb-10 hover:shadow-[0_0_30px_rgba(255,255,255,0.2)] hover:scale-105 active:scale-95 transition-all">
-      <i class="fa-solid fa-plus-circle text-lg"></i> <span class="hidden sm:inline">New Interaction</span><span class="sm:hidden">New</span>
-    </button>
-
-    <div class="flex-1 overflow-y-auto space-y-6 md:space-y-10 pr-2">
+    <div class="flex-1 overflow-y-auto px-4 py-2 space-y-6">
+      
       <div>
-        <p class="text-[9px] md:text-[10px] uppercase tracking-[0.4em] text-zinc-600 font-black px-2 mb-4 md:mb-5">Neural Cores</p>
-        <div class="space-y-2">
-          <button onclick="setModel('nasoro-2-lite')" id="btn-lite" class="model-btn w-full flex items-center gap-3 md:gap-4 p-3 md:p-4 rounded-2xl text-left">
-            <div class="icon-box icon-lite w-9 md:w-10 h-9 md:h-10 rounded-xl flex items-center justify-center text-black transition-all hover:scale-110 flex-shrink-0">
-              <i class="fa-solid fa-bolt-lightning text-base md:text-lg"></i>
+        <h3 class="text-[10px] uppercase tracking-widest text-zinc-600 font-bold mb-3 px-2">Reasoning Engine</h3>
+        <div class="space-y-1">
+          <button onclick="setModel('nasoro-2-fast')" id="btn-fast" class="model-btn w-full flex items-center gap-3 p-2 rounded-lg text-left active">
+            <div class="icon-box w-8 h-8 rounded-md bg-cyan-500/10 text-cyan-400 flex items-center justify-center transition-transform">
+              <i class="fa-solid fa-bolt text-xs"></i>
             </div>
-            <div class="min-w-0">
-              <p class="text-xs md:text-sm font-bold truncate">Nasoro 2 Lite</p>
-              <p class="text-[8px] md:text-[10px] opacity-50 truncate">High speed, efficient.</p>
-            </div>
-          </button>
-          
-          <button onclick="setModel('nasoro-2')" id="btn-std" class="model-btn w-full flex items-center gap-3 md:gap-4 p-3 md:p-4 rounded-2xl text-left">
-            <div class="icon-box icon-std w-9 md:w-10 h-9 md:h-10 rounded-xl flex items-center justify-center text-black transition-all hover:scale-110 flex-shrink-0">
-              <i class="fa-solid fa-microchip text-base md:text-lg"></i>
-            </div>
-            <div class="min-w-0">
-              <p class="text-xs md:text-sm font-bold truncate">Nasoro 2</p>
-              <p class="text-[8px] md:text-[10px] opacity-50 truncate">Balanced intelligence.</p>
+            <div>
+              <p class="font-semibold text-zinc-200 text-xs">Nasoro Fast</p>
+              <p class="text-[10px] text-zinc-500">Speed optimized</p>
             </div>
           </button>
 
-          <button onclick="setModel('nasoro-2-pro')" id="btn-pro" class="model-btn w-full flex items-center gap-3 md:gap-4 p-3 md:p-4 rounded-2xl text-left">
-            <div class="icon-box icon-pro w-9 md:w-10 h-9 md:h-10 rounded-xl flex items-center justify-center text-black transition-all hover:scale-110 flex-shrink-0">
-              <i class="fa-solid fa-brain text-base md:text-lg"></i>
+          <button onclick="setModel('nasoro-2')" id="btn-std" class="model-btn w-full flex items-center gap-3 p-2 rounded-lg text-left">
+            <div class="icon-box w-8 h-8 rounded-md bg-white/10 text-zinc-200 flex items-center justify-center transition-transform">
+              <i class="fa-solid fa-microchip text-xs"></i>
             </div>
-            <div class="min-w-0">
-              <p class="text-xs md:text-sm font-bold truncate">Nasoro 2 Pro</p>
-              <p class="text-[8px] md:text-[10px] opacity-50 truncate">Maximum reasoning & logic.</p>
+            <div>
+              <p class="font-semibold text-zinc-200 text-xs">Nasoro 2.0</p>
+              <p class="text-[10px] text-zinc-500">Balanced logic</p>
             </div>
           </button>
 
-          <button onclick="setModel('nasoro-2-chat')" id="btn-chat" class="model-btn w-full flex items-center gap-3 md:gap-4 p-3 md:p-4 rounded-2xl text-left">
-            <div class="icon-box icon-chat w-9 md:w-10 h-9 md:h-10 rounded-xl flex items-center justify-center text-black transition-all hover:scale-110 flex-shrink-0">
-              <i class="fa-solid fa-comments text-base md:text-lg"></i>
+          <button onclick="setModel('nasoro-2-pro')" id="btn-pro" class="model-btn w-full flex items-center gap-3 p-2 rounded-lg text-left">
+            <div class="icon-box w-8 h-8 rounded-md bg-violet-500/10 text-violet-400 flex items-center justify-center transition-transform">
+              <i class="fa-solid fa-brain text-xs"></i>
             </div>
-            <div class="min-w-0">
-              <p class="text-xs md:text-sm font-bold truncate">Nasoro 2 Chat</p>
-              <p class="text-[8px] md:text-[10px] opacity-50 truncate">Roleplay & storytelling.</p>
+            <div>
+              <p class="font-semibold text-zinc-200 text-xs">Nasoro Pro</p>
+              <p class="text-[10px] text-zinc-500">Deep reasoning</p>
+            </div>
+          </button>
+
+          <button onclick="setModel('nasoro-2-chat')" id="btn-chat" class="model-btn w-full flex items-center gap-3 p-2 rounded-lg text-left">
+            <div class="icon-box w-8 h-8 rounded-md bg-amber-500/10 text-amber-400 flex items-center justify-center transition-transform">
+              <i class="fa-solid fa-comments text-xs"></i>
+            </div>
+            <div>
+              <p class="font-semibold text-zinc-200 text-xs">Roleplay</p>
+              <p class="text-[10px] text-zinc-500">Creative mode</p>
             </div>
           </button>
         </div>
       </div>
 
       <div>
-        <p class="text-[9px] md:text-[10px] uppercase tracking-[0.4em] text-zinc-600 font-black px-2 mb-4 md:mb-5">Memory Archive</p>
+        <h3 class="text-[10px] uppercase tracking-widest text-zinc-600 font-bold mb-3 px-2">Memory Archive</h3>
         <div id="history-list" class="space-y-1"></div>
       </div>
     </div>
 
-    <div class="pt-6 md:pt-8 border-t border-white/5 text-center">
-      <p class="text-[8px] md:text-[10px] text-zinc-700 font-black tracking-[0.5em] uppercase italic">© 2026-2027, OpenOro™ & OpenAI™</p>
+    <div class="p-4 border-t border-white/5 text-center">
+      <p class="text-[9px] text-zinc-700 font-mono">© NASORO SYSTEMS 2026</p>
     </div>
   </aside>
 
-  <main class="flex-1 flex flex-col relative h-full overflow-hidden z-10">
-    <header class="h-16 md:h-20 flex items-center justify-between px-4 md:px-8 glass-header shrink-0">
-      <button onclick="openSidebar()" class="md:hidden text-zinc-400 p-2 hover:text-white hover:bg-white/5 rounded-lg transition-all"><i class="fa-solid fa-bars-staggered text-xl"></i></button>
-      <div class="hidden md:flex items-center gap-4">
-        <span class="text-[11px] font-black text-zinc-500 tracking-[0.4em] uppercase">Architecture: <span class="text-white">v2.4.0-Stable</span></span>
-      </div>
-      <div class="flex items-center gap-2">
-         <div class="live-pulse"></div>
-         <span class="text-[9px] md:text-[10px] font-bold text-zinc-400 uppercase tracking-widest">Neural Link Active</span>
-      </div>
+  <main class="flex-1 flex flex-col relative h-full overflow-hidden z-10 bg-[#020202]">
+    
+    <header class="md:hidden h-14 flex items-center justify-between px-4 glass-header shrink-0 z-40">
+      <button onclick="openSidebar()" class="text-zinc-400 hover:text-white"><i class="fa-solid fa-bars"></i></button>
+      <span class="font-bold text-sm tracking-widest uppercase">Nasoro</span>
+      <div class="w-2 h-2 bg-green-500 rounded-full shadow-[0_0_10px_rgba(34,197,94,0.5)]"></div>
     </header>
 
-    <div id="chat-container" class="flex-1 overflow-y-auto px-4 md:px-16 pt-8 md:pt-12 pb-40 md:pb-48 scroll-smooth">
-      <div id="welcome-ui" class="max-w-3xl mx-auto pt-12 md:pt-24 text-center welcome-ui">
-        <div class="relative inline-block mb-8 md:mb-10">
-          <img src="https://i.postimg.cc/SRc9H0j8/Screenshot-2026-01-06-18-13-41-32-74158c69f0af68fbf38b28b8774cd491.jpg" class="h-24 w-24 md:h-44 md:w-44 rounded-[3.5rem] shadow-[0_40px_100px_rgba(0,0,0,0.8)] mx-auto border-2 border-white/10 object-cover transition-all hover:scale-105 hover:shadow-[0_40px_120px_rgba(59,130,246,0.3)]">
-          <div class="absolute -top-4 -right-4 bg-gradient-to-r from-white to-gray-100 text-black text-[8px] md:text-[10px] font-black px-3 md:px-4 py-1 md:py-1.5 rounded-full shadow-2xl animate-bounce">GENESIS</div>
+    <div id="chat-container" class="flex-1 overflow-y-auto px-4 md:px-0 pt-6 pb-32 scroll-smooth">
+      
+      <div id="welcome-ui" class="h-full flex flex-col items-center justify-center text-center px-6 -mt-10">
+        <div class="relative mb-6 group cursor-default">
+          <div class="absolute inset-0 bg-blue-500/20 blur-3xl rounded-full opacity-0 group-hover:opacity-100 transition-opacity duration-1000"></div>
+          <img src="https://i.postimg.cc/SRc9H0j8/Screenshot-2026-01-06-18-13-41-32-74158c69f0af68fbf38b28b8774cd491.jpg" class="relative w-24 h-24 md:w-32 md:h-32 rounded-[2rem] shadow-2xl border border-white/10 object-cover">
         </div>
-        <h1 class="text-5xl md:text-9xl font-black tracking-tighter text-white mb-6 md:mb-8">NASORO</h1>
-        <p class="text-zinc-500 text-base md:text-2xl font-medium leading-relaxed max-w-lg mx-auto italic px-4">Refined Neural Intelligence. Every interaction stored locally.</p>
+        <h1 class="text-3xl md:text-5xl font-bold text-transparent bg-clip-text bg-gradient-to-b from-white to-zinc-500 mb-4 tracking-tight">How can I help?</h1>
+        <p class="text-zinc-500 text-sm md:text-base max-w-md">Nasoro is ready. Select a neural core from the sidebar or type below to begin.</p>
       </div>
+
     </div>
 
-    <div class="absolute bottom-0 left-0 w-full p-2 md:p-10 flex justify-center pointer-events-none z-[100]">
-      <div id="input-container" class="w-full max-w-5xl input-container p-2 md:p-2 pointer-events-auto">
-        <div id="image-preview-container" class="image-gallery px-2 md:px-4 pt-2"></div>
-        <div class="flex items-end gap-2 md:gap-3 px-2 md:px-4 py-2">
-          <label class="w-12 h-12 md:w-14 md:h-14 flex items-center justify-center rounded-full hover:bg-white/10 cursor-pointer text-zinc-500 transition-all hover:text-white hover:scale-110 flex-shrink-0">
-            <i class="fa-solid fa-plus-circle text-lg md:text-xl"></i>
+    <div class="absolute bottom-0 left-0 w-full p-4 md:p-6 bg-gradient-to-t from-[#020202] via-[#020202] to-transparent z-30">
+      <div class="max-w-3xl mx-auto">
+        
+        <div id="image-preview-container" class="flex flex-wrap gap-2 mb-2 px-1"></div>
+
+        <div id="input-container" class="input-wrapper rounded-3xl p-2 flex items-end gap-2 relative">
+          
+          <label class="w-10 h-10 md:w-12 md:h-12 flex items-center justify-center rounded-full hover:bg-white/10 cursor-pointer text-zinc-400 hover:text-white transition-colors flex-shrink-0 mb-1">
+            <i class="fa-solid fa-paperclip text-lg"></i>
             <input type="file" id="img-input" class="hidden" accept="image/*" multiple>
           </label>
-          <textarea id="chat-field" rows="1" placeholder="Consult Nasoro Intelligence..." class="flex-1 bg-transparent border-none focus:ring-0 py-3 md:py-5 text-white placeholder-zinc-700 text-base md:text-[18px] resize-none max-h-52 scrollbar-hide transition-all"></textarea>
-          <button id="send-action" class="w-12 h-12 md:w-14 md:h-14 flex items-center justify-center rounded-[1.5rem] text-black hover:scale-110 active:scale-95 transition-all flex-shrink-0">
-            <i class="fa-solid fa-arrow-up text-lg md:text-xl"></i>
+
+          <textarea id="chat-field" rows="1" placeholder="Send a message..." class="flex-1 bg-transparent border-none focus:ring-0 py-3 md:py-4 text-white placeholder-zinc-600 text-[15px] md:text-base resize-none max-h-48 overflow-y-auto" style="min-height: 24px;"></textarea>
+          
+          <button id="send-action" class="w-10 h-10 md:w-12 md:h-12 flex items-center justify-center rounded-full bg-white text-black hover:bg-zinc-200 transition-colors flex-shrink-0 disabled:opacity-50 disabled:cursor-not-allowed mb-1">
+            <i class="fa-solid fa-arrow-up text-lg"></i>
           </button>
         </div>
+        
+        <p class="text-center text-[10px] text-zinc-700 mt-3 font-mono">AI can make mistakes. Check important info.</p>
       </div>
     </div>
   </main>
 
-  <div id="overlay" onclick="closeSidebar()" class="fixed inset-0 bg-black/95 z-[998] hidden opacity-0 transition-opacity"></div>
-  <div id="rate-limit-badge" class="rate-limit-badge"></div>
+  <div id="overlay" onclick="closeSidebar()" class="fixed inset-0 bg-black/80 z-40 hidden backdrop-blur-sm transition-opacity"></div>
+  <div id="rate-limit-badge" class="fixed bottom-5 right-5 bg-red-500/10 border border-red-500/50 text-red-200 px-4 py-2 rounded-lg text-xs font-bold hidden backdrop-blur-md"></div>
 
   <script>
+    // --- CONFIGURATION ---
+    // Change this to your live URL when deploying (e.g., https://nasoroai-production.up.railway.app/ai)
+    const API_URL = "http://localhost:3000/ai"; 
+    
+    const LOGO_URL = "https://i.postimg.cc/SRc9H0j8/Screenshot-2026-01-06-18-13-41-32-74158c69f0af68fbf38b28b8774cd491.jpg";
+
+    // --- STATE ---
     const chatContainer = document.getElementById('chat-container');
     const welcomeUi = document.getElementById('welcome-ui');
     const chatField = document.getElementById('chat-field');
     const sendAction = document.getElementById('send-action');
     const sidebar = document.getElementById('sidebar');
     const overlay = document.getElementById('overlay');
-    const historyList = document.getElementById('history-list');
     const imgInput = document.getElementById('img-input');
     const imagePreviewContainer = document.getElementById('image-preview-container');
-    const inputContainer = document.getElementById('input-container');
-    const rateLimitBadge = document.getElementById('rate-limit-badge');
-
+    
     let currentChatId = Date.now();
-    let currentModel = 'nasoro-2';
+    let currentModel = 'nasoro-2-fast'; // Defaulting to Fast to match Backend ID
     let allChats = JSON.parse(localStorage.getItem('nasoro_ultra_archive') || '{}');
     let selectedImages = [];
+    
+    // Auto-resize textarea
+    chatField.addEventListener('input', function() {
+      this.style.height = 'auto';
+      this.style.height = (this.scrollHeight) + 'px';
+      if(this.value === '') this.style.height = 'auto';
+    });
 
-    // Rate Limiting & Anti-Spam
-    let lastRequestTime = 0;
-    const MIN_REQUEST_INTERVAL = 1000; // 1 second minimum between requests
-    const MAX_REQUESTS_PER_MINUTE = 30; // Max 30 requests per minute
-    let requestTimestamps = [];
-
-    function showRateLimitWarning(message) {
-      rateLimitBadge.textContent = message;
-      rateLimitBadge.classList.add('show');
-      inputContainer.classList.add('rate-limited');
-      setTimeout(() => {
-        rateLimitBadge.classList.remove('show');
-        inputContainer.classList.remove('rate-limited');
-      }, 3000);
-    }
-
-    function checkRateLimit() {
-      const now = Date.now();
-      const oneMinuteAgo = now - 60000;
-
-      // Remove old timestamps
-      requestTimestamps = requestTimestamps.filter(t => t > oneMinuteAgo);
-
-      // Check if too many requests in last minute
-      if (requestTimestamps.length >= MAX_REQUESTS_PER_MINUTE) {
-        showRateLimitWarning(`⚠️ Rate limited. Max ${MAX_REQUESTS_PER_MINUTE} requests/min`);
-        return false;
-      }
-
-      // Check minimum interval between requests
-      if (now - lastRequestTime < MIN_REQUEST_INTERVAL) {
-        showRateLimitWarning('⏱️ Wait before sending another message');
-        return false;
-      }
-
-      requestTimestamps.push(now);
-      lastRequestTime = now;
-      return true;
-    }
-
+    // --- SIDEBAR LOGIC ---
     function openSidebar() { 
       sidebar.classList.add('sidebar-active'); 
       overlay.classList.remove('hidden'); 
-      setTimeout(() => overlay.classList.add('opacity-100'), 10); 
     }
     
     function closeSidebar() { 
       sidebar.classList.remove('sidebar-active'); 
-      overlay.classList.remove('opacity-100'); 
-      setTimeout(() => overlay.classList.add('hidden'), 300); 
+      overlay.classList.add('hidden'); 
     }
 
     function setModel(key) {
       currentModel = key;
       document.querySelectorAll('.model-btn').forEach(b => b.classList.remove('active'));
-      const id = { 'nasoro-2-lite': 'btn-lite', 'nasoro-2-pro': 'btn-pro', 'nasoro-2': 'btn-std', 'nasoro-2-chat': 'btn-chat' }[key];
-      document.getElementById(id).classList.add('active');
+      
+      // Map IDs to keys
+      const btnMap = {
+        'nasoro-2-fast': 'btn-fast',
+        'nasoro-2': 'btn-std',
+        'nasoro-2-pro': 'btn-pro',
+        'nasoro-2-chat': 'btn-chat'
+      };
+      
+      const btnId = btnMap[key];
+      if(btnId) document.getElementById(btnId).classList.add('active');
+      
       if(window.innerWidth < 768) closeSidebar();
     }
 
-    // Image Upload Handler
+    // --- IMAGE HANDLING ---
     imgInput.addEventListener('change', (e) => {
-      selectedImages = [];
-      imagePreviewContainer.innerHTML = '';
-      
       Array.from(e.target.files).forEach(file => {
         const reader = new FileReader();
         reader.onload = (event) => {
-          selectedImages.push(event.target.result);
-          const img = document.createElement('img');
-          img.src = event.target.result;
-          img.className = 'image-gallery-item';
-          img.onclick = () => {
-            selectedImages = selectedImages.filter(i => i !== event.target.result);
-            img.remove();
-          };
-          imagePreviewContainer.appendChild(img);
+          const base64 = event.target.result;
+          if(!selectedImages.includes(base64)) {
+            selectedImages.push(base64);
+            renderImages();
+          }
         };
         reader.readAsDataURL(file);
       });
+      imgInput.value = ''; // Reset so same file can be selected again
     });
 
+    function renderImages() {
+      imagePreviewContainer.innerHTML = selectedImages.map((src, index) => `
+        <div class="img-preview-wrap">
+          <img src="${src}">
+          <div class="img-remove" onclick="removeImage(${index})"><i class="fa-solid fa-times"></i></div>
+        </div>
+      `).join('');
+    }
+
+    window.removeImage = (index) => {
+      selectedImages.splice(index, 1);
+      renderImages();
+    };
+
+    // --- CHAT LOGIC ---
     function saveContext() {
       const msgs = Array.from(chatContainer.querySelectorAll('.msg-group')).map(el => el.outerHTML);
       if(msgs.length > 0) {
-        const text = chatContainer.querySelector('.user-txt')?.innerText || "Memory Log";
-        allChats[currentChatId] = { title: text.substring(0, 32) + '...', html: msgs };
+        const rawText = chatContainer.querySelector('.user-txt')?.innerText || "New Conversation";
+        allChats[currentChatId] = { title: rawText.substring(0, 30), html: msgs };
         localStorage.setItem('nasoro_ultra_archive', JSON.stringify(allChats));
         renderArchive();
       }
     }
 
     function renderArchive() {
+      const historyList = document.getElementById('history-list');
       const ids = Object.keys(allChats).sort((a,b) => b-a);
+      
       historyList.innerHTML = ids.length ? ids.map(id => `
-        <div class="group relative flex items-center mb-1 history-item">
-          <button onclick="loadChat('${id}')" class="flex-1 flex items-center gap-3 px-3 py-2 text-left text-xs md:text-sm truncate">
-            <i class="fa-regular fa-folder-open mr-1 opacity-30 text-[12px]"></i> <span class="truncate">${allChats[id].title}</span>
-          </button>
-          <button onclick="deleteChat('${id}')" class="absolute right-3 opacity-0 group-hover:opacity-100 p-2 text-zinc-600 hover:text-red-500 transition-all">
-            <i class="fa-solid fa-trash-can text-sm"></i>
+        <div class="group flex items-center justify-between p-2 hover:bg-white/5 rounded-lg cursor-pointer transition-colors" onclick="loadChat('${id}')">
+          <div class="flex items-center gap-3 min-w-0">
+             <i class="fa-regular fa-message text-zinc-600 text-xs"></i>
+             <span class="text-xs text-zinc-300 truncate">${allChats[id].title}</span>
+          </div>
+          <button onclick="deleteChat('${id}', event)" class="text-zinc-600 hover:text-red-400 px-2 opacity-0 group-hover:opacity-100 transition-opacity">
+            <i class="fa-solid fa-trash text-xs"></i>
           </button>
         </div>
-      `).join('') : '<p class="px-4 text-[8px] md:text-[10px] text-zinc-700 font-black uppercase tracking-widest">Archive Empty</p>';
+      `).join('') : '<p class="text-[10px] text-zinc-600 p-2 italic">No history found.</p>';
     }
 
-    window.deleteChat = (id) => { delete allChats[id]; localStorage.setItem('nasoro_ultra_archive', JSON.stringify(allChats)); renderArchive(); if(currentChatId == id) startNewChat(); };
-    window.loadChat = (id) => { currentChatId = id; welcomeUi.classList.add('hidden'); chatContainer.innerHTML = allChats[id].html.join(''); chatContainer.scrollTo({ top: chatContainer.scrollHeight, behavior: 'smooth' }); if(window.innerWidth < 768) closeSidebar(); };
-    window.startNewChat = () => { currentChatId = Date.now(); chatContainer.innerHTML = ''; chatContainer.appendChild(welcomeUi); welcomeUi.classList.remove('hidden'); selectedImages = []; imagePreviewContainer.innerHTML = ''; if(window.innerWidth < 768) closeSidebar(); };
+    window.deleteChat = (id, e) => { 
+      e.stopPropagation();
+      delete allChats[id]; 
+      localStorage.setItem('nasoro_ultra_archive', JSON.stringify(allChats)); 
+      renderArchive(); 
+      if(currentChatId == id) startNewChat(); 
+    };
 
+    window.loadChat = (id) => { 
+      currentChatId = id; 
+      welcomeUi.classList.add('hidden'); 
+      chatContainer.innerHTML = allChats[id].html.join(''); 
+      addCopyListeners(); // Re-attach listeners to old HTML
+      chatContainer.scrollTop = chatContainer.scrollHeight;
+      if(window.innerWidth < 768) closeSidebar(); 
+    };
+
+    window.startNewChat = () => { 
+      currentChatId = Date.now(); 
+      chatContainer.innerHTML = ''; 
+      chatContainer.appendChild(welcomeUi); 
+      welcomeUi.classList.remove('hidden'); 
+      selectedImages = []; 
+      renderImages();
+      if(window.innerWidth < 768) closeSidebar(); 
+    };
+
+    // --- MESSAGE RENDERING ---
     function postMessage(content, role, images = []) {
       welcomeUi.classList.add('hidden');
       const isNas = role === 'nasoro';
       
-      let imageHtml = '';
-      if (images.length > 0) {
-        imageHtml = images.map(img => `<img src="${img}" class="image-preview">`).join('');
-      }
-
+      let imgHtml = images.map(src => `<img src="${src}" class="max-w-[200px] rounded-lg border border-white/10 mb-2">`).join('');
+      
       const html = `
-        <div class="msg-group max-w-4xl mx-auto flex gap-4 md:gap-6 mb-8 md:mb-14 msg-anim px-2 md:px-0">
-          <div class="w-10 h-10 md:w-14 md:h-14 rounded-3xl flex-shrink-0 flex items-center justify-center overflow-hidden border border-white/5 shadow-2xl bg-nasoro-card">
-            ${isNas ? `<img src="${LOGO_URL}" class="w-full h-full object-cover">` : `<div class="text-[8px] md:text-[10px] font-black text-zinc-600">YOU</div>`}
+        <div class="msg-group max-w-3xl mx-auto flex gap-4 md:gap-6 mb-8 msg-anim">
+          <div class="w-8 h-8 md:w-10 md:h-10 rounded-lg flex-shrink-0 overflow-hidden ${isNas ? 'shadow-lg shadow-blue-900/20' : ''}">
+            ${isNas ? `<img src="${LOGO_URL}" class="w-full h-full object-cover">` : `<div class="w-full h-full bg-zinc-800 flex items-center justify-center text-[10px] text-zinc-400 font-bold">YOU</div>`}
           </div>
-          <div class="flex-1 min-w-0 pt-1 md:pt-2">
-            <p class="text-[8px] md:text-[10px] font-black text-zinc-600 uppercase tracking-[0.4em] mb-2 md:mb-4">${isNas ? 'Nasoro' : 'User Entry'}</p>
-            ${imageHtml}
-            <div class="${isNas ? 'nasoro-glow text-zinc-100' : 'user-txt text-zinc-300'} text-sm md:text-[19px] leading-relaxed prose prose-invert max-w-none font-medium">
-              ${isNas ? marked.parse(content) : content.replace(/\n/g, '<br>')}
+          <div class="flex-1 min-w-0 pt-1">
+            <div class="flex items-center gap-2 mb-1">
+              <span class="text-xs font-bold text-zinc-300">${isNas ? 'Nasoro' : 'You'}</span>
+              ${isNas ? `<span class="text-[9px] px-1.5 py-0.5 rounded bg-zinc-800 text-zinc-500 border border-white/5 uppercase tracking-wide">${currentModel.replace('nasoro-', '')}</span>` : ''}
+            </div>
+            ${imgHtml}
+            <div class="${isNas ? 'prose prose-invert text-zinc-300' : 'user-txt text-white'} text-[15px] leading-relaxed">
+              ${isNas ? parseMarkdown(content) : content.replace(/\n/g, '<br>')}
             </div>
           </div>
         </div>`;
+      
       chatContainer.insertAdjacentHTML('beforeend', html);
-      document.querySelectorAll('pre code').forEach(el => hljs.highlightElement(el));
+      
+      // Highlight code blocks
+      if(isNas) {
+        document.querySelectorAll('pre code').forEach(el => hljs.highlightElement(el));
+        addCopyListeners();
+      }
+      
       chatContainer.scrollTo({ top: chatContainer.scrollHeight, behavior: 'smooth' });
       saveContext();
     }
 
+    function parseMarkdown(text) {
+      // Use marked to parse, ensuring it's safeish
+      return marked.parse(text);
+    }
+
+    function addCopyListeners() {
+      // Add copy buttons to pre tags that don't have them
+      document.querySelectorAll('pre').forEach(pre => {
+        if(!pre.querySelector('.copy-btn')) {
+          const btn = document.createElement('button');
+          btn.className = 'copy-btn';
+          btn.innerHTML = '<i class="fa-regular fa-copy"></i> Copy';
+          btn.onclick = () => {
+            const code = pre.querySelector('code').innerText;
+            navigator.clipboard.writeText(code);
+            btn.innerHTML = '<i class="fa-solid fa-check"></i> Copied';
+            setTimeout(() => btn.innerHTML = '<i class="fa-regular fa-copy"></i> Copy', 2000);
+          };
+          pre.appendChild(btn);
+        }
+      });
+    }
+
+    // --- SEND LOGIC ---
     async function handleSend() {
       const msg = chatField.value.trim();
       if(!msg && selectedImages.length === 0) return;
 
-      // Check rate limit
-      if (!checkRateLimit()) {
-        sendAction.disabled = true;
-        setTimeout(() => { sendAction.disabled = false; }, MIN_REQUEST_INTERVAL);
-        return;
-      }
-
       sendAction.disabled = true;
+      chatField.style.height = 'auto'; // Reset height
       
-      postMessage(msg || '[Sent Image]', 'user', selectedImages);
+      // Post User Message
+      postMessage(msg || '[Image Uploaded]', 'user', selectedImages);
       chatField.value = '';
-      selectedImages = [];
-      imagePreviewContainer.innerHTML = '';
       
-      const tid = 't-'+Date.now();
-      chatContainer.insertAdjacentHTML('beforeend', `<div id="${tid}" class="msg-group max-w-4xl mx-auto flex gap-4 md:gap-10 mb-8 md:mb-14 px-2 md:px-0 msg-anim"><div class="w-10 h-10 md:w-14 md:h-14 rounded-3xl overflow-hidden border border-white/5 bg-nasoro-card"><img src="${LOGO_URL}" class="w-full h-full object-cover"></div><div class="flex gap-2.5 items-center h-10 md:h-14"><span class="w-2 h-2 bg-zinc-700 rounded-full typing-dot animate-bounce"></span><span class="w-2 h-2 bg-zinc-700 rounded-full typing-dot animate-bounce"></span><span class="w-2 h-2 bg-zinc-700 rounded-full typing-dot animate-bounce"></span></div></div>`);
-      chatContainer.scrollTo({ top: chatContainer.scrollHeight, behavior: 'smooth' });
+      const payloadImages = [...selectedImages]; // Snapshot for payload
+      selectedImages = [];
+      renderImages();
+      
+      // Loading Placeholder
+      const tid = 'loading-'+Date.now();
+      const loadingHtml = `
+        <div id="${tid}" class="msg-group max-w-3xl mx-auto flex gap-4 md:gap-6 mb-8 msg-anim opacity-50">
+          <div class="w-8 h-8 md:w-10 md:h-10 rounded-lg overflow-hidden"><img src="${LOGO_URL}" class="w-full h-full object-cover"></div>
+          <div class="flex gap-1 items-center h-8">
+            <div class="typing-dot"></div><div class="typing-dot"></div><div class="typing-dot"></div>
+          </div>
+        </div>`;
+      chatContainer.insertAdjacentHTML('beforeend', loadingHtml);
+      chatContainer.scrollTop = chatContainer.scrollHeight;
 
       try {
-        const res = await fetch("https://nasoroai-production.up.railway.app/ai", { 
+        const res = await fetch(API_URL, { 
           method: 'POST', 
           headers: { 'Content-Type': 'application/json' }, 
-          body: JSON.stringify({ message: msg, images: selectedImages, model: currentModel }) 
+          body: JSON.stringify({ message: msg, images: payloadImages, model: currentModel }) 
         });
+        
         const data = await res.json();
         document.getElementById(tid).remove();
-        postMessage(data.reply || "Neural system timeout.", 'nasoro');
+        
+        if (res.status === 429) {
+          showToast("⚠️ Rate limit reached. Slow down.");
+          postMessage("I'm receiving too many requests. Please wait a moment.", 'nasoro');
+        } else if (res.ok) {
+          postMessage(data.reply || "Thinking...", 'nasoro');
+        } else {
+          postMessage("System error. Please try again.", 'nasoro');
+        }
+
       } catch (err) { 
         console.error(err);
         document.getElementById(tid).remove(); 
-        postMessage("Neural Link Severed.", 'nasoro'); 
+        postMessage("Error: Could not connect to Nasoro Backend.", 'nasoro'); 
+        showToast("❌ Connection Failed");
       } finally {
         sendAction.disabled = false;
+        chatField.focus();
       }
     }
 
+    function showToast(txt) {
+      const el = document.getElementById('rate-limit-badge');
+      el.innerText = txt;
+      el.classList.remove('hidden');
+      setTimeout(() => el.classList.add('hidden'), 3000);
+    }
+
+    // --- EVENT LISTENERS ---
     sendAction.addEventListener('click', handleSend);
-    chatField.addEventListener('keydown', e => { if(e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSend(); } });
+    chatField.addEventListener('keydown', e => { 
+      if(e.key === 'Enter' && !e.shiftKey) { 
+        e.preventDefault(); 
+        handleSend(); 
+      } 
+    });
     
+    // Init
     renderArchive();
-    setModel('nasoro-2');
+    setModel('nasoro-2-fast'); // Set default model
   </script>
 </body>
 </html>
