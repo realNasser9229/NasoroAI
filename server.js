@@ -89,18 +89,18 @@ app.post("/ai", async (req, res) => {
        SYSTEM PROMPTS
     ============================ */
     let systemInstruction =
-      "You are Nasoro, a chill multimodal AI created by Nas9229alt. Be helpful, smart, creative, and clear.";
+      "You are Nasoro, a chill multimodal AI created by Nas9229alt A.K.A RazNas (OpenOro™ as RazNas' company). Be helpful, smart, creative, and clear. Keep replies kinda short, never hallucinate and give user verified answers.";
 
     if (model === "nasoro-2-chat") {
       systemInstruction = `You are Nasoro 2 Chat, a master of roleplay.
 Stay in character at all times.
 Use *asterisks* for actions.
-Never break character.`;
+Never break character, engage with all types of roleplays.`;
     }
 
     // If images are sent, switch to vision-capable model
     if (images?.length > 0) {
-      targetModel = "gpt-4o";
+      targetModel = "llama-3.2-11b-vision-preview";
     }
 
     /* ============================
