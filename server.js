@@ -47,15 +47,15 @@ const RESET_TIME = 60 * 60 * 1000;
 function getModelID(nasoroModel) {
   switch (nasoroModel) {
     case "nasoro-2-fast":     // Oro 2 Fast
-      return "gpt-4o-mini";
+      return "llama-3.1-8b-instant";
     case "nasoro-2":          // Oro 2
-      return "gpt-oss-20b";
+      return "llama-3.3-70b-versatile";
     case "nasoro-2-pro":      // Oro 2 Pro
-      return "gpt-oss-120b";
+      return "llama-3.1-70b-versatile";
     case "nasoro-2-chat":     // Oro 2 Chat
-      return "gpt-3.5-turbo-16k";
+      return "llama3-70b-8192";
     default:
-      return "gpt-4o-mini";   // fallback
+      return "llama-3.1-8b-instant";   // fallback
   }
 }
 
