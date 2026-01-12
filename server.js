@@ -49,9 +49,9 @@ function getModelID(nasoroModel) {
     case "nasoro-2-fast":     // Oro 2 Fast
       return "llama-3.1-8b-instant";
     case "nasoro-2":          // Oro 2
-      return "llama-3.3-70b-versatile";
-    case "nasoro-2-pro":      // Oro 2 Pro
       return "llama-3.1-70b-versatile";
+    case "nasoro-2-pro":      // Oro 2 Pro
+      return "llama-3.3-70b-versatile";
     case "nasoro-2-chat":     // Oro 2 Chat
       return "llama3-70b-8192";
     default:
