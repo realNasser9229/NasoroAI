@@ -503,7 +503,7 @@
         
         if (res.status === 429) {
           showToast("⚠️ Rate limit reached. Slow down.");
-          postMessage("I'm receiving too many requests. Please wait a moment.", 'nasoro');
+          postMessage("I'm receiving too many requests. Please wait a moment...", 'nasoro');
         } else if (res.ok) {
           postMessage(data.reply || "Thinking...", 'nasoro');
         } else {
