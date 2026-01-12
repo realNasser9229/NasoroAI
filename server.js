@@ -190,4 +190,4 @@ app.post("/ai", async (req, res) => {
 
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => console.log(`Nasoro Backend Live on port ${PORT}`));
-   
+         
