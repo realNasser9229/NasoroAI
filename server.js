@@ -54,7 +54,7 @@ function getModelID(nasoroModel) {
       
     // --- SPECIALIST MODELS ---
     case "nasoro-2-coder":
-      return "qwen-2.5-32b"; 
+      return "qwen3-32b"; 
       
     case "nasoro-2-scientist":
       return "deepseek-r1-distill-llama-70b"; 
