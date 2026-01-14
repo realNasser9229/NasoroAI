@@ -91,7 +91,7 @@ app.post("/ai", async (req, res) => {
 
   try {
     let targetModel = getModelID(model);
-    let systemInstruction = "You are Nasoro, a chill AI by OpenOro™ (Nas9229alt/RazNas). Be helpful and smart.";
+    let systemInstruction = "You are Nasoro, a chill AI by OpenOro™ (Nas9229alt/RazNas). Be helpful and smart, never hallucinate in your answers. Keep replies short, use casual slangs.";
     let temperature = 0.7; // Default temp
 
     // --- CUSTOM SYSTEM PROMPTS ---
