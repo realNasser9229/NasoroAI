@@ -480,33 +480,43 @@
     }
 
     function postMessage(content, role, images = []) {
-      welcomeUi.classList.add('hidden');
-      const isNas = role === 'nasoro';
-      let imgHtml = images.map(src => `<img src="${src}" class="max-w-[200px] rounded-lg border border-white/10 mb-2">`).join('');
-      
-      const html = `
-        <div class="msg-group max-w-3xl mx-auto flex gap-4 md:gap-6 mb-8 msg-anim">
-          <div class="w-8 h-8 md:w-10 md:h-10 rounded-lg flex-shrink-0 overflow-hidden ${isNas ? 'shadow-lg shadow-blue-900/20' : ''}">
-            ${isNas ? `<img src="${LOGO_URL}" class="w-full h-full object-cover">` : `<div class="w-full h-full bg-zinc-800 flex items-center justify-center text-[10px] text-zinc-400 font-bold">YOU</div>`}
-          </div>
-          <div class="flex-1 min-w-0 pt-1">
-            <div class="flex items-center gap-2 mb-1">
-              <span class="text-xs font-bold text-zinc-300">${isNas ? 'Nasoro' : 'You'}</span>
-              ${isNas ? `<span class="text-[9px] px-1.5 py-0.5 rounded bg-zinc-800 text-zinc-500 border border-white/5 uppercase tracking-wide" id="status-${Date.now()}">${currentModel.replace('nasoro-', '')}</span>` : ''}
-            </div>
-            ${imgHtml}
-            <div class="${isNas ? 'prose prose-invert text-zinc-300' : 'user-txt text-white'} text-[15px] leading-relaxed" id="${isNas ? 'ai-content-' + Date.now() : ''}">
-              ${isNas ? (content ? marked.parse(content) : '') : content.replace(/\n/g, '<br>')}
-            </div>
-          </div>
-        </div>`;
-      
-      chatContainer.insertAdjacentHTML('beforeend', html);
-      if(isNas && content) { document.querySelectorAll('pre code').forEach(el => hljs.highlightElement(el)); addCopyListeners(); }
-      chatContainer.scrollTo({ top: chatContainer.scrollHeight, behavior: 'smooth' });
-      saveContext();
-      return isNas ? document.getElementById('ai-content-' + Date.now()) : null;
+  welcomeUi.classList.add('hidden');
+  const isNas = role === 'nasoro';
+  const uniqueId = Date.now(); // Generate ONE timestamp to use for both
+  
+  let imgHtml = images.map(src => `<img src="${src}" class="max-w-[200px] rounded-lg border border-white/10 mb-2">`).join('');
+  
+  const html = `
+    <div class="msg-group max-w-3xl mx-auto flex gap-4 md:gap-6 mb-8 msg-anim">
+      <div class="w-8 h-8 md:w-10 md:h-10 rounded-lg flex-shrink-0 overflow-hidden ${isNas ? 'shadow-lg shadow-blue-900/20' : ''}">
+        ${isNas ? `<img src="${LOGO_URL}" class="w-full h-full object-cover">` : `<div class="w-full h-full bg-zinc-800 flex items-center justify-center text-[10px] text-zinc-400 font-bold">YOU</div>`}
+      </div>
+      <div class="flex-1 min-w-0 pt-1">
+        <div class="flex items-center gap-2 mb-1">
+          <span class="text-xs font-bold text-zinc-300">${isNas ? 'Nasoro' : 'You'}</span>
+          ${isNas ? `<span class="text-[9px] px-1.5 py-0.5 rounded bg-zinc-800 text-zinc-500 border border-white/5 uppercase tracking-wide" id="status-${uniqueId}">${currentModel.replace('nasoro-', '')}</span>` : ''}
+        </div>
+        ${imgHtml}
+        <div class="${isNas ? 'prose prose-invert text-zinc-300' : 'user-txt text-white'} text-[15px] leading-relaxed" id="${isNas ? 'ai-content-' + uniqueId : ''}">
+          ${isNas ? (content ? marked.parse(content) : '') : content.replace(/\n/g, '<br>')}
+        </div>
+      </div>
+    </div>`;
+  
+  chatContainer.insertAdjacentHTML('beforeend', html);
+  
+  if(isNas && content) { 
+    document.querySelectorAll('pre code').forEach(el => hljs.highlightElement(el)); 
+    addCopyListeners(); 
+  }
+  
+  chatContainer.scrollTo({ top: chatContainer.scrollHeight, behavior: 'smooth' });
+  saveContext();
+  
+  // Now it returns the EXACT element we just created
+  return isNas ? document.getElementById('ai-content-' + uniqueId) : null;
     }
+    
 
     // --- MAIN SEND LOGIC ---
     async function handleSend() {
