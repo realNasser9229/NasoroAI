@@ -1,7 +1,7 @@
 import express from "express";
 import cors from "cors";
 import dotenv from "dotenv";
-import fetch from "node-fetch";
+import fetch from "node-fetch"; 
 
 dotenv.config();
 
@@ -9,7 +9,7 @@ const app = express();
 app.use(cors());
 app.use(express.json({ limit: "50mb" }));
 
-const OPENAI_KEY = process.env.OPENAI_API_KEY; // Placeholder stays
+const GROQ_KEY = process.env.OPENAI_API_KEY; 
 
 /* ============================
    USER SESSIONS
@@ -35,7 +35,7 @@ function getSession(userId) {
   return userSessions.get(userId);
 }
 
-const MAX_REQUESTS_PER_HOUR = 60;
+const MAX_REQUESTS_PER_HOUR = 60; 
 const RESET_TIME = 60 * 60 * 1000;
 
 /* ============================
@@ -43,22 +43,28 @@ const RESET_TIME = 60 * 60 * 1000;
 ============================ */
 function getModelID(nasoroModel) {
   switch (nasoroModel) {
-    case "nasoro-2-fast":
-      return "xiaomi/mimo-v2-flash:free";
-    case "nasoro-2":
-      return "meta-llama/llama-3.3-70b-instruct:free";
-    case "nasoro-2-pro":
-      return "meta-llama/llama-3.3-70b-instruct:free";
-    case "nasoro-2-chat":
-      return "openrouter/auto"; // automatically picks best free chat model
+    case "nasoro-2-fast":     
+      return "llama-3.1-8b-instant";
+    case "nasoro-2":          
+      return "llama-3.1-70b-versatile";
+    case "nasoro-2-pro":      
+      return "llama-3.3-70b-versatile"; // Flagship
+    case "nasoro-2-chat":     
+      return "llama3-70b-8192";
+      
+    // --- SPECIALIST MODELS ---
     case "nasoro-2-coder":
-      return "kwaipilot/kat-coder-pro-v1:free";
+      return "qwen3-32b"; 
+      
     case "nasoro-2-scientist":
-      return "deepseek/deepseek-r1t2-chimera:free";
+      return "deepseek-r1-distill-llama-70b"; 
+
     case "nasoro-2-image":
-      return "openrouter/auto"; // fallback for text-to-prompt
+      // We use the fast Llama model to "Engineering the Prompt" for the image
+      return "llama-3.1-8b-instant";
+      
     default:
-      return "openrouter/auto";
+      return "llama-3.1-8b-instant"; 
   }
 }
 
@@ -70,48 +76,75 @@ app.post("/ai", async (req, res) => {
   const userId = getUserId(req);
   const session = getSession(userId);
 
-  // Rate limit reset
+  // ---- rate limit reset ----
   if (Date.now() - session.lastReset > RESET_TIME) {
     session.requests = 0;
     session.lastReset = Date.now();
   }
 
   if (session.requests >= MAX_REQUESTS_PER_HOUR) {
-    return res.status(429).json({ reply: "Rate limit hit. Take a breather." });
+    return res.status(429).json({
+      reply: "Rate limit hit. Take a breather."
+    });
   }
   session.requests++;
 
   try {
     let targetModel = getModelID(model);
-    let systemInstruction =
-      "You are Nasoro, a chill AI by OpenOro™ (Nas9229alt/RazNas). Be helpful and smart, never hallucinate. Keep replies short, casual slang.";
-    let temperature = 0.7;
+    let systemInstruction = "You are Nasoro, a chill AI by OpenOro™ (Nas9229alt/RazNas). Be helpful and smart, never hallucinate in your answers. Keep replies short, use casual slangs.";
+    let temperature = 0.7; // Default temp
 
-    // Custom system prompts
+    // --- CUSTOM SYSTEM PROMPTS ---
     if (model === "nasoro-2-chat") {
       systemInstruction = `You are Nasoro 2 Chat. Stay in character always. Use *asterisks* for actions.`;
-    } else if (model === "nasoro-2-coder") {
-      systemInstruction = `You are Nasoro Coder. Expert software engineer. Provide clean, optimized code. Explain logic briefly.`;
-    } else if (model === "nasoro-2-scientist") {
-      systemInstruction = `You are Nasoro Scientist. PhD-level researcher. Focus on facts and deep analysis.`;
-      temperature = 0.6;
-    } else if (model === "nasoro-2-image") {
-      systemInstruction = `You are Oro 2 Image engine. ONLY output high-quality Markdown image link. Format: ![Image](https://image.pollinations.ai/prompt/{description}?width=1024&height=1024&nologo=true&seed={random}). Replace {description} with URL-encoded prompt, {random} with random 5-digit number.`;
-      temperature = 1.0;
+    } 
+    else if (model === "nasoro-2-coder") {
+      systemInstruction = `You are Nasoro Coder. You are an expert Software Engineer. Provide clean, optimized code. Explain logic briefly.`;
+    } 
+    else if (model === "nasoro-2-scientist") {
+      systemInstruction = `You are Nasoro Scientist. You are a PhD-level researcher. Focus on facts, scientific method, and deep analysis.`;
+      temperature = 0.6; // Lower temp for factual accuracy
+    } 
+    else if (model === "nasoro-2-image") {
+      // PROMPT ENGINEERING FOR POLLINATIONS
+      systemInstruction = `You are the Oro 2 Image engine. 
+      Your ONLY job is to create a high-quality Markdown image link based on user requests.
+      
+      OUTPUT FORMAT: 
+      ![Image](https://image.pollinations.ai/prompt/{description}?width=1024&height=1024&nologo=true&seed={random})
+      
+      INSTRUCTIONS:
+      1. Take the user's simple request and enhance it with artistic details (e.g., 'cinematic lighting, 8k, hyperrealistic, detailed texture').
+      2. Replace {description} with your enhanced text (ensure spaces are replaced with %20 or underscores).
+      3. Replace {random} with a random 5-digit number to ensure uniqueness.
+      4. DO NOT write any conversational text. Output ONLY the markdown link.`;
+      
+      temperature = 1.0; // Max creativity for art prompts
     }
 
-    // Vision / image override
+    // Vision Switch (Overrides textual models if image is present)
     if (images?.length > 0) {
-      targetModel = "openrouter/auto"; // fallback multimodal free
-      if (model === "nasoro-2-coder") systemInstruction += " Analyze code/diagram in this image.";
+      targetModel = "llama-3.2-11b-vision-preview";
+      if(model === "nasoro-2-coder") systemInstruction += " Analyze the code/diagram in this image.";
     }
 
-    // History limits
+    /* ============================
+       HISTORY LIMITS
+    ============================ */
     let historyLimit = 40;
-    if (model === "nasoro-2-pro" || model === "nasoro-2-scientist") historyLimit = 15;
-    if (model === "nasoro-2-image") historyLimit = 5;
+    
+    // Strict limit for Pro and Scientist to save resources
+    if (model === "nasoro-2-pro" || model === "nasoro-2-scientist") {
+      historyLimit = 15;
+    }
+    // Image mode doesn't need much history
+    if (model === "nasoro-2-image") {
+      historyLimit = 5; 
+    }
 
-    // Construct messages
+    /* ============================
+       MESSAGE CONSTRUCTION
+    ============================ */
     const messages = [
       { role: "system", content: systemInstruction },
       ...session.history.slice(-historyLimit)
@@ -124,17 +157,17 @@ app.post("/ai", async (req, res) => {
         contentArray.push({ type: "image_url", image_url: { url: img } });
       });
       messages.push({ role: "user", content: contentArray });
-    } else if (message) {
-      messages.push({ role: "user", content: message });
+    } else {
+      if (message) messages.push({ role: "user", content: message });
     }
 
     /* ============================
-       OPENROUTER API REQUEST
+       GROQ API REQUEST
     ============================ */
-    const openRouterResp = await fetch("https://openrouter.ai/api/v1/chat/completions", {
+    const groqResponse = await fetch("https://api.groq.com/openai/v1/chat/completions", {
       method: "POST",
       headers: {
-        "Authorization": `Bearer ${OPENAI_KEY}`,
+        "Authorization": `Bearer ${GROQ_KEY}`,
         "Content-Type": "application/json"
       },
       body: JSON.stringify({
@@ -145,24 +178,18 @@ app.post("/ai", async (req, res) => {
       })
     });
 
-    let data;
-    try {
-      data = await openRouterResp.json();
-    } catch (jsonErr) {
-      console.error("JSON parse error:", jsonErr);
-      return res.status(500).json({ reply: "Invalid API response" });
+    const data = await groqResponse.json();
+    
+    if(data.error) {
+       console.error("Groq Error:", data.error);
+       return res.status(500).json({ reply: "Model Error: " + data.error.message });
     }
 
-    // Handle API errors
-    if (data.error) {
-      console.error("OpenRouter Error:", data.error);
-      return res.status(500).json({ reply: "Model Error: " + data.error.message });
-    }
-
-    // Extract AI reply safely
     const aiReply = data.choices?.[0]?.message?.content || "No reply generated.";
 
-    // Save history
+    /* ============================
+       SAVE MEMORY
+    ============================ */
     session.history.push({ role: "user", content: message || "[Image Sent]" });
     session.history.push({ role: "assistant", content: aiReply });
 
@@ -190,3 +217,4 @@ app.get("/", (req, res) => {
 ============================ */
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => console.log(`Nasoro Backend Live on port ${PORT}`));
+         
