@@ -9,7 +9,7 @@ const app = express();
 app.use(cors());
 app.use(express.json({ limit: "50mb" }));
 
-const GROQ_KEY = process.env.OPENAI_API_KEY; 
+const OPENAI_KEY = process.env.OPENAI_API_KEY; // Placeholder stays
 
 /* ============================
    USER SESSIONS
@@ -48,21 +48,15 @@ function getModelID(nasoroModel) {
     case "nasoro-2":          
       return "llama-3.1-70b-versatile";
     case "nasoro-2-pro":      
-      return "llama-3.3-70b-versatile"; // Flagship
+      return "llama-3.3-70b-versatile"; 
     case "nasoro-2-chat":     
-      return "llama3-70b-8192";
-      
-    // --- SPECIALIST MODELS ---
+      return "llama3-70b-8192";      
     case "nasoro-2-coder":
-      return "qwen3-32b"; 
-      
+      return "qwen3-32b";      
     case "nasoro-2-scientist":
       return "deepseek-r1-distill-llama-70b"; 
-
     case "nasoro-2-image":
-      // We use the fast Llama model to "Engineering the Prompt" for the image
-      return "llama-3.1-8b-instant";
-      
+      return "llama-3.1-8b-instant";     
     default:
       return "llama-3.1-8b-instant"; 
   }
@@ -76,7 +70,6 @@ app.post("/ai", async (req, res) => {
   const userId = getUserId(req);
   const session = getSession(userId);
 
-  // ---- rate limit reset ----
   if (Date.now() - session.lastReset > RESET_TIME) {
     session.requests = 0;
     session.lastReset = Date.now();
@@ -91,60 +84,38 @@ app.post("/ai", async (req, res) => {
 
   try {
     let targetModel = getModelID(model);
-    let systemInstruction = "You are Nasoro, a chill AI by OpenOro™ (Nas9229alt/RazNas). Be helpful and smart, never hallucinate in your answers. Keep replies short, use casual slangs.";
-    let temperature = 0.7; // Default temp
+    let systemInstruction = "You are Nasoro, a chill AI by OpenOro™ (Nas9229alt/RazNas). Be helpful and smart, never hallucinate. Keep replies short, casual slang.";
+    let temperature = 0.7;
 
-    // --- CUSTOM SYSTEM PROMPTS ---
     if (model === "nasoro-2-chat") {
       systemInstruction = `You are Nasoro 2 Chat. Stay in character always. Use *asterisks* for actions.`;
-    } 
-    else if (model === "nasoro-2-coder") {
+    } else if (model === "nasoro-2-coder") {
       systemInstruction = `You are Nasoro Coder. You are an expert Software Engineer. Provide clean, optimized code. Explain logic briefly.`;
-    } 
-    else if (model === "nasoro-2-scientist") {
+    } else if (model === "nasoro-2-scientist") {
       systemInstruction = `You are Nasoro Scientist. You are a PhD-level researcher. Focus on facts, scientific method, and deep analysis.`;
-      temperature = 0.6; // Lower temp for factual accuracy
-    } 
-    else if (model === "nasoro-2-image") {
-      // PROMPT ENGINEERING FOR POLLINATIONS
+      temperature = 0.6;
+    } else if (model === "nasoro-2-image") {
       systemInstruction = `You are the Oro 2 Image engine. 
       Your ONLY job is to create a high-quality Markdown image link based on user requests.
-      
       OUTPUT FORMAT: 
       ![Image](https://image.pollinations.ai/prompt/{description}?width=1024&height=1024&nologo=true&seed={random})
-      
       INSTRUCTIONS:
-      1. Take the user's simple request and enhance it with artistic details (e.g., 'cinematic lighting, 8k, hyperrealistic, detailed texture').
-      2. Replace {description} with your enhanced text (ensure spaces are replaced with %20 or underscores).
-      3. Replace {random} with a random 5-digit number to ensure uniqueness.
-      4. DO NOT write any conversational text. Output ONLY the markdown link.`;
-      
-      temperature = 1.0; // Max creativity for art prompts
+      1. Enhance user text with artistic details.
+      2. Replace {description} with URL-encoded text.
+      3. Replace {random} with random 5-digit number.
+      4. ONLY output the markdown link.`;
+      temperature = 1.0;
     }
 
-    // Vision Switch (Overrides textual models if image is present)
     if (images?.length > 0) {
       targetModel = "llama-3.2-11b-vision-preview";
       if(model === "nasoro-2-coder") systemInstruction += " Analyze the code/diagram in this image.";
     }
 
-    /* ============================
-       HISTORY LIMITS
-    ============================ */
     let historyLimit = 40;
-    
-    // Strict limit for Pro and Scientist to save resources
-    if (model === "nasoro-2-pro" || model === "nasoro-2-scientist") {
-      historyLimit = 15;
-    }
-    // Image mode doesn't need much history
-    if (model === "nasoro-2-image") {
-      historyLimit = 5; 
-    }
+    if (model === "nasoro-2-pro" || model === "nasoro-2-scientist") historyLimit = 15;
+    if (model === "nasoro-2-image") historyLimit = 5;
 
-    /* ============================
-       MESSAGE CONSTRUCTION
-    ============================ */
     const messages = [
       { role: "system", content: systemInstruction },
       ...session.history.slice(-historyLimit)
@@ -162,12 +133,12 @@ app.post("/ai", async (req, res) => {
     }
 
     /* ============================
-       GROQ API REQUEST
+       OPENROUTER API REQUEST
     ============================ */
-    const groqResponse = await fetch("https://api.groq.com/openai/v1/chat/completions", {
+    const openRouterResp = await fetch("https://openrouter.ai/api/v1/chat/completions", {
       method: "POST",
       headers: {
-        "Authorization": `Bearer ${GROQ_KEY}`,
+        "Authorization": `Bearer ${OPENAI_KEY}`,
         "Content-Type": "application/json"
       },
       body: JSON.stringify({
@@ -178,10 +149,10 @@ app.post("/ai", async (req, res) => {
       })
     });
 
-    const data = await groqResponse.json();
-    
+    const data = await openRouterResp.json();
+
     if(data.error) {
-       console.error("Groq Error:", data.error);
+       console.error("OpenRouter Error:", data.error);
        return res.status(500).json({ reply: "Model Error: " + data.error.message });
     }
 
@@ -217,4 +188,3 @@ app.get("/", (req, res) => {
 ============================ */
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => console.log(`Nasoro Backend Live on port ${PORT}`));
-         
