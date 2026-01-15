@@ -42,23 +42,24 @@ const RESET_TIME = 60 * 60 * 1000;
    MODEL MAPPING
 ============================ */
 function getModelID(nasoroModel) {
+function getModelID(nasoroModel) {
   switch (nasoroModel) {
-    case "nasoro-2-fast":     
-      return "llama-3.1-8b-instant";
-    case "nasoro-2":          
-      return "llama-3.1-70b-versatile";
-    case "nasoro-2-pro":      
-      return "llama-3.3-70b-versatile"; 
-    case "nasoro-2-chat":     
-      return "llama3-70b-8192";      
+    case "nasoro-2-fast":
+      return "meta-llama/llama-3.1-8b-instruct:free";
+    case "nasoro-2":
+      return "meta-llama/llama-3.3-70b-instruct:free";
+    case "nasoro-2-pro":
+      return "meta-llama/llama-3.3-70b-instruct:free";
+    case "nasoro-2-chat":
+      return "openrouter/auto"; // best free chat model
     case "nasoro-2-coder":
-      return "qwen3-32b";      
+      return "qwen/qwen-32b-chat:free";
     case "nasoro-2-scientist":
-      return "deepseek-r1-distill-llama-70b"; 
+      return "deepseek/deepseek-r1:free";
     case "nasoro-2-image":
-      return "llama-3.1-8b-instant";     
+      return "openrouter/auto"; // fallback if no specific image model
     default:
-      return "llama-3.1-8b-instant"; 
+      return "openrouter/auto";
   }
 }
 
