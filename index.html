@@ -10,7 +10,6 @@
   
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.7.0/styles/tokyo-night-dark.min.css">
   <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.7.0/highlight.min.js"></script>
-  
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 
   <script>
@@ -18,16 +17,15 @@
       theme: { 
         extend: { 
           colors: { 
-            nasoro: { 
-              bg: '#020202', 
-              card: '#0a0a0a', 
-              border: 'rgba(255,255,255,0.08)',
-              accent: '#3b82f6'
-            } 
+            nasoro: { bg: '#020202', card: '#0a0a0a' } 
           },
           fontFamily: {
             sans: ['Plus Jakarta Sans', 'sans-serif'],
             mono: ['JetBrains Mono', 'monospace'],
+          },
+          animation: {
+            'spin-slow': 'spin 3s linear infinite',
+            'pulse-fast': 'pulse 1.5s cubic-bezier(0.4, 0, 0.6, 1) infinite',
           }
         } 
       }
@@ -47,85 +45,64 @@
         radial-gradient(circle at 85% 85%, rgba(139, 92, 246, 0.05) 0%, transparent 45%);
     }
 
-    .glass-sidebar { 
-      background: rgba(5, 5, 5, 0.95); 
-      border-right: 1px solid rgba(255,255,255,0.06);
+    /* --- STARTUP ANIMATION --- */
+    #startup-screen {
+      position: fixed; inset: 0; z-index: 100;
+      background: #000;
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      transition: opacity 0.8s ease-out, visibility 0.8s;
     }
-    .glass-header { 
-      background: rgba(2, 2, 2, 0.8); 
-      backdrop-filter: blur(12px); 
-      border-bottom: 1px solid rgba(255,255,255,0.06);
+    .loader-logo {
+      width: 60px; height: 60px;
+      background: linear-gradient(135deg, #3b82f6, #8b5cf6);
+      border-radius: 16px;
+      animation: breathe 2s ease-in-out infinite alternate;
+      box-shadow: 0 0 30px rgba(59,130,246,0.3);
+    }
+    @keyframes breathe { 0% { transform: scale(0.95); opacity: 0.8; } 100% { transform: scale(1.05); opacity: 1; } }
+
+    /* --- GATEWAY (CAPTCHA) --- */
+    #security-gateway {
+      position: fixed; inset: 0; z-index: 90;
+      background: rgba(2, 2, 2, 0.95);
+      backdrop-filter: blur(20px);
+      display: flex; align-items: center; justify-content: center;
+      transition: transform 0.5s ease-in-out;
     }
 
-    @keyframes slideUp { 
-      from { opacity: 0; transform: translateY(15px); } 
-      to { opacity: 1; transform: translateY(0); } 
-    }
-    
+    .glass-sidebar { background: rgba(5, 5, 5, 0.95); border-right: 1px solid rgba(255,255,255,0.06); }
+    .glass-header { background: rgba(2, 2, 2, 0.8); backdrop-filter: blur(12px); border-bottom: 1px solid rgba(255,255,255,0.06); }
+
+    @keyframes slideUp { from { opacity: 0; transform: translateY(15px); } to { opacity: 1; transform: translateY(0); } }
     .msg-anim { animation: slideUp 0.4s cubic-bezier(0.2, 0.9, 0.3, 1) forwards; }
     .sidebar-active { transform: translateX(0) !important; }
     
-    .model-btn { 
-      transition: all 0.2s ease; 
-      border: 1px solid transparent;
-    }
+    .model-btn { transition: all 0.2s ease; border: 1px solid transparent; }
     .model-btn:hover { background: rgba(255,255,255,0.05); }
-    .model-btn.active { 
-      background: rgba(255,255,255,0.08); 
-      border-color: rgba(255,255,255,0.1);
-      box-shadow: 0 4px 12px rgba(0,0,0,0.2);
-    }
+    .model-btn.active { background: rgba(255,255,255,0.08); border-color: rgba(255,255,255,0.1); box-shadow: 0 4px 12px rgba(0,0,0,0.2); }
     .model-btn.active .icon-box { transform: scale(1.1); }
 
     .input-wrapper {
-      background: #0f0f0f;
-      border: 1px solid rgba(255,255,255,0.1);
+      background: #0f0f0f; border: 1px solid rgba(255,255,255,0.1);
       transition: border-color 0.2s, box-shadow 0.2s;
     }
-    .input-wrapper:focus-within {
-      border-color: rgba(255,255,255,0.25);
-      box-shadow: 0 0 20px rgba(59, 130, 246, 0.1);
-    }
+    .input-wrapper:focus-within { border-color: rgba(255,255,255,0.25); box-shadow: 0 0 20px rgba(59, 130, 246, 0.1); }
     
     ::-webkit-scrollbar { width: 6px; }
     ::-webkit-scrollbar-track { background: transparent; }
     ::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 10px; }
-    ::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.2); }
-
-    .prose pre { 
-      background: #0d0d0d !important; 
-      border: 1px solid rgba(255,255,255,0.1);
-      border-radius: 8px;
-      position: relative;
-      margin-top: 1rem;
-    }
+    
+    .prose pre { background: #0d0d0d !important; border: 1px solid rgba(255,255,255,0.1); border-radius: 8px; margin-top: 1rem; position: relative; }
     .prose code { font-family: 'JetBrains Mono', monospace; font-size: 0.9em; }
-    .prose p { margin-bottom: 0.8em; }
-    .prose ul { list-style-type: disc; padding-left: 1.5em; margin-bottom: 1em; }
-    .prose ol { list-style-type: decimal; padding-left: 1.5em; margin-bottom: 1em; }
     .prose strong { color: white; font-weight: 700; }
     
     .copy-btn {
-      position: absolute;
-      top: 8px;
-      right: 8px;
-      background: rgba(255,255,255,0.1);
-      color: #aaa;
-      border-radius: 4px;
-      padding: 4px 8px;
-      font-size: 10px;
-      cursor: pointer;
-      transition: all 0.2s;
-      border: none;
-      font-family: 'Plus Jakarta Sans', sans-serif;
-      font-weight: 600;
+      position: absolute; top: 8px; right: 8px;
+      background: rgba(255,255,255,0.1); color: #aaa;
+      border-radius: 4px; padding: 4px 8px; font-size: 10px;
+      cursor: pointer; border: none;
     }
-    .copy-btn:hover { background: rgba(255,255,255,0.2); color: white; }
-
-    .typing-dot {
-      width: 6px; height: 6px; background: #666; border-radius: 50%;
-      animation: bounce 1.4s infinite;
-    }
+    .typing-dot { width: 6px; height: 6px; background: #666; border-radius: 50%; animation: bounce 1.4s infinite; }
     .typing-dot:nth-child(2) { animation-delay: 0.2s; }
     .typing-dot:nth-child(3) { animation-delay: 0.4s; }
     @keyframes bounce { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-4px); } }
@@ -133,10 +110,7 @@
     .img-preview-wrap { position: relative; display: inline-block; margin-right: 8px; }
     .img-preview-wrap img { width: 60px; height: 60px; object-fit: cover; border-radius: 8px; border: 1px solid rgba(255,255,255,0.2); }
     .img-remove { 
-      position: absolute; top: -5px; right: -5px; 
-      background: red; color: white; border-radius: 50%; 
-      width: 16px; height: 16px; font-size: 10px; 
-      display: flex; align-items: center; justify-content: center; cursor: pointer; 
+      position: absolute; top: -5px; right: -5px; background: red; color: white; border-radius: 50%; width: 16px; height: 16px; font-size: 10px; display: flex; align-items: center; justify-content: center; cursor: pointer; 
     }
   </style>
 </head>
@@ -144,8 +118,27 @@
   
   <div class="bg-mesh"></div>
 
+  <div id="startup-screen">
+    <div class="loader-logo mb-6"></div>
+    <h1 class="text-2xl font-bold text-white tracking-widest uppercase">Nasoro AI</h1>
+    <p class="text-zinc-500 text-xs mt-2 font-mono">Initializing Neural Nets...</p>
+  </div>
+
+  <div id="security-gateway">
+    <div class="bg-[#0f0f0f] p-8 rounded-2xl border border-white/10 text-center max-w-sm w-full shadow-2xl">
+      <div class="w-12 h-12 bg-zinc-800 rounded-full mx-auto flex items-center justify-center mb-4">
+        <i class="fa-solid fa-shield-halved text-zinc-400"></i>
+      </div>
+      <h2 class="text-xl font-bold text-white mb-2">Security Check</h2>
+      <p class="text-zinc-500 text-xs mb-6">Please verify you are human to access Nasoro.</p>
+      
+      <button onclick="onTurnstileSuccess()" class="w-full py-3 bg-white text-black font-bold rounded-lg hover:bg-zinc-200 transition-colors flex items-center justify-center gap-2">
+        <i class="fa-regular fa-square-check"></i> I am human
+      </button>
+    </div>
+  </div>
+
   <aside id="sidebar" class="fixed inset-y-0 left-0 w-[280px] -translate-x-full md:relative md:translate-x-0 glass-sidebar z-[50] flex flex-col transition-transform duration-300 ease-in-out">
-    
     <div class="p-6 pb-2">
       <div class="flex items-center gap-3 mb-6">
         <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-500 to-violet-600 flex items-center justify-center shadow-lg shadow-blue-900/20">
@@ -157,47 +150,36 @@
         </div>
       </div>
       
-      <button onclick="startNewChat()" class="w-full flex items-center gap-3 px-4 py-3 rounded-lg bg-white/5 hover:bg-white/10 text-zinc-200 transition-all border border-white/5 hover:border-white/10 group">
-        <div class="w-6 h-6 rounded-md bg-white/10 flex items-center justify-center group-hover:bg-white/20 transition-colors">
-          <i class="fa-solid fa-plus text-xs"></i>
-        </div>
+      <button onclick="startNewChat()" class="w-full flex items-center gap-3 px-4 py-3 rounded-lg bg-white/5 hover:bg-white/10 text-zinc-200 transition-all border border-white/5 hover:border-white/10 group mb-2">
+        <div class="w-6 h-6 rounded-md bg-white/10 flex items-center justify-center group-hover:bg-white/20 transition-colors"><i class="fa-solid fa-plus text-xs"></i></div>
         <span class="font-medium text-sm">New Session</span>
+      </button>
+
+      <button onclick="toggleNotifications()" id="notify-btn" class="w-full flex items-center gap-3 px-4 py-2 rounded-lg hover:bg-white/5 text-zinc-500 hover:text-zinc-300 transition-all">
+        <i class="fa-solid fa-bell text-xs"></i> <span class="text-xs">Enable Hot-Takes</span>
       </button>
     </div>
 
     <div class="flex-1 overflow-y-auto px-4 py-2 space-y-6">
-      
+      <div class="bg-zinc-900/50 p-3 rounded-lg border border-white/5">
+        <label class="text-[10px] uppercase text-zinc-500 font-bold mb-2 block">Your Persona</label>
+        <input type="text" id="custom-persona" placeholder="e.g. 'Talk like a pirate'" class="w-full bg-black/50 border border-white/10 rounded px-2 py-1 text-xs text-white focus:outline-none focus:border-blue-500">
+      </div>
+
       <div>
         <h3 class="text-[10px] uppercase tracking-widest text-zinc-600 font-bold mb-3 px-2">Core Models</h3>
         <div class="space-y-1">
           <button onclick="setModel('nasoro-2-fast')" id="btn-fast" class="model-btn w-full flex items-center gap-3 p-2 rounded-lg text-left active">
-            <div class="icon-box w-8 h-8 rounded-md bg-cyan-500/10 text-cyan-400 flex items-center justify-center transition-transform">
-              <i class="fa-solid fa-bolt text-xs"></i>
-            </div>
-            <div>
-              <p class="font-semibold text-zinc-200 text-xs">Oro 2 Fast</p>
-              <p class="text-[10px] text-zinc-500">Speed optimized.</p>
-            </div>
+            <div class="icon-box w-8 h-8 rounded-md bg-cyan-500/10 text-cyan-400 flex items-center justify-center"><i class="fa-solid fa-bolt text-xs"></i></div>
+            <div><p class="font-semibold text-zinc-200 text-xs">Oro 2 Fast</p><p class="text-[10px] text-zinc-500">Speed optimized.</p></div>
           </button>
-
           <button onclick="setModel('nasoro-2')" id="btn-std" class="model-btn w-full flex items-center gap-3 p-2 rounded-lg text-left">
-            <div class="icon-box w-8 h-8 rounded-md bg-white/10 text-zinc-200 flex items-center justify-center transition-transform">
-              <i class="fa-solid fa-microchip text-xs"></i>
-            </div>
-            <div>
-              <p class="font-semibold text-zinc-200 text-xs">Oro 2</p>
-              <p class="text-[10px] text-zinc-500">Balanced logic.</p>
-            </div>
+            <div class="icon-box w-8 h-8 rounded-md bg-white/10 text-zinc-200 flex items-center justify-center"><i class="fa-solid fa-microchip text-xs"></i></div>
+            <div><p class="font-semibold text-zinc-200 text-xs">Oro 2</p><p class="text-[10px] text-zinc-500">Balanced logic.</p></div>
           </button>
-
           <button onclick="setModel('nasoro-2-pro')" id="btn-pro" class="model-btn w-full flex items-center gap-3 p-2 rounded-lg text-left">
-            <div class="icon-box w-8 h-8 rounded-md bg-violet-500/10 text-violet-400 flex items-center justify-center transition-transform">
-              <i class="fa-solid fa-brain text-xs"></i>
-            </div>
-            <div>
-              <p class="font-semibold text-zinc-200 text-xs">Oro 2 Pro</p>
-              <p class="text-[10px] text-zinc-500">Deep logic (15 msg limit).</p>
-            </div>
+            <div class="icon-box w-8 h-8 rounded-md bg-violet-500/10 text-violet-400 flex items-center justify-center"><i class="fa-solid fa-brain text-xs"></i></div>
+            <div><p class="font-semibold text-zinc-200 text-xs">Oro 2 Pro</p><p class="text-[10px] text-zinc-500">Deep logic.</p></div>
           </button>
         </div>
       </div>
@@ -206,60 +188,28 @@
         <h3 class="text-[10px] uppercase tracking-widest text-zinc-600 font-bold mb-3 px-2">Specialists</h3>
         <div class="space-y-1">
           <button onclick="setModel('nasoro-2-coder')" id="btn-coder" class="model-btn w-full flex items-center gap-3 p-2 rounded-lg text-left">
-            <div class="icon-box w-8 h-8 rounded-md bg-emerald-500/10 text-emerald-400 flex items-center justify-center transition-transform">
-              <i class="fa-solid fa-code text-xs"></i>
-            </div>
-            <div>
-              <p class="font-semibold text-zinc-200 text-xs">Oro 2 Coder</p>
-              <p class="text-[10px] text-zinc-500">Ideal for scripting.</p>
-            </div>
+            <div class="icon-box w-8 h-8 rounded-md bg-emerald-500/10 text-emerald-400 flex items-center justify-center"><i class="fa-solid fa-code text-xs"></i></div>
+            <div><p class="font-semibold text-zinc-200 text-xs">Oro 2 Coder</p><p class="text-[10px] text-zinc-500">Optimized scripting.</p></div>
           </button>
-
           <button onclick="setModel('nasoro-2-scientist')" id="btn-scientist" class="model-btn w-full flex items-center gap-3 p-2 rounded-lg text-left">
-            <div class="icon-box w-8 h-8 rounded-md bg-teal-500/10 text-teal-400 flex items-center justify-center transition-transform">
-              <i class="fa-solid fa-flask text-xs"></i>
-            </div>
-            <div>
-              <p class="font-semibold text-zinc-200 text-xs">Oro 2 Scientist</p>
-              <p class="text-[10px] text-zinc-500">Research (15 msg limit).</p>
-            </div>
+            <div class="icon-box w-8 h-8 rounded-md bg-teal-500/10 text-teal-400 flex items-center justify-center"><i class="fa-solid fa-flask text-xs"></i></div>
+            <div><p class="font-semibold text-zinc-200 text-xs">Oro 2 Scientist</p><p class="text-[10px] text-zinc-500">Researcher / Search.</p></div>
           </button>
-
           <button onclick="setModel('nasoro-2-image')" id="btn-image" class="model-btn w-full flex items-center gap-3 p-2 rounded-lg text-left">
-            <div class="icon-box w-8 h-8 rounded-md bg-pink-500/10 text-pink-400 flex items-center justify-center transition-transform">
-              <i class="fa-solid fa-paint-brush text-xs"></i>
-            </div>
-            <div>
-              <p class="font-semibold text-zinc-200 text-xs">Oro 2 Image</p>
-              <p class="text-[10px] text-zinc-500">Flux Art Engine.</p>
-            </div>
-          </button>
-
-          <button onclick="setModel('nasoro-2-chat')" id="btn-chat" class="model-btn w-full flex items-center gap-3 p-2 rounded-lg text-left">
-            <div class="icon-box w-8 h-8 rounded-md bg-amber-500/10 text-amber-400 flex items-center justify-center transition-transform">
-              <i class="fa-solid fa-comments text-xs"></i>
-            </div>
-            <div>
-              <p class="font-semibold text-zinc-200 text-xs">Oro 2 Chat</p>
-              <p class="text-[10px] text-zinc-500">Roleplay optimized.</p>
-            </div>
+            <div class="icon-box w-8 h-8 rounded-md bg-pink-500/10 text-pink-400 flex items-center justify-center"><i class="fa-solid fa-paint-brush text-xs"></i></div>
+            <div><p class="font-semibold text-zinc-200 text-xs">Oro 2 Image</p><p class="text-[10px] text-zinc-500">Flux Art Engine.</p></div>
           </button>
         </div>
       </div>
-
+      
       <div>
         <h3 class="text-[10px] uppercase tracking-widest text-zinc-600 font-bold mb-3 px-2">Memory Archive</h3>
         <div id="history-list" class="space-y-1"></div>
       </div>
     </div>
-
-    <div class="p-4 border-t border-white/5 text-center">
-      <p class="text-[9px] text-zinc-700 font-mono">© OPENORO™ 2026</p>
-    </div>
   </aside>
 
   <main class="flex-1 flex flex-col relative h-full overflow-hidden z-10 bg-[#020202]">
-    
     <header class="md:hidden h-14 flex items-center justify-between px-4 glass-header shrink-0 z-40">
       <button onclick="openSidebar()" class="text-zinc-400 hover:text-white"><i class="fa-solid fa-bars"></i></button>
       <span class="font-bold text-sm tracking-widest uppercase">Nasoro 2.5</span>
@@ -273,7 +223,7 @@
           <img src="https://i.postimg.cc/SRc9H0j8/Screenshot-2026-01-06-18-13-41-32-74158c69f0af68fbf38b28b8774cd491.jpg" class="relative w-24 h-24 md:w-32 md:h-32 rounded-[2rem] shadow-2xl border border-white/10 object-cover">
         </div>
         <h1 class="text-3xl md:text-5xl font-bold text-transparent bg-clip-text bg-gradient-to-b from-white to-zinc-500 mb-4 tracking-tight">How can I help?</h1>
-        <p class="text-zinc-500 text-sm md:text-base max-w-md">Intelligence refined. Made by OpenOro™, powered by Groq™.</p>
+        <p class="text-zinc-500 text-sm md:text-base max-w-md">Intelligence refined. Now with Researcher & Custom Persona.</p>
       </div>
     </div>
 
@@ -290,7 +240,7 @@
             <i class="fa-solid fa-arrow-up text-lg"></i>
           </button>
         </div>
-        <p class="text-center text-[10px] text-zinc-700 mt-3 font-mono">Nasoro can make mistakes. Scientist & Pro limited to 15 messages.</p>
+        <p class="text-center text-[10px] text-zinc-700 mt-3 font-mono">Nasoro checks inputs for efficiency. Specialists have limit 15.</p>
       </div>
     </div>
   </main>
@@ -300,7 +250,6 @@
 
   <script>
     const API_URL = "https://nasoroai-production.up.railway.app/ai"; 
-    // Kept your logo link as requested
     const LOGO_URL = "https://i.postimg.cc/SRc9H0j8/Screenshot-2026-01-06-18-13-41-32-74158c69f0af68fbf38b28b8774cd491.jpg";
 
     const chatContainer = document.getElementById('chat-container');
@@ -311,12 +260,62 @@
     const overlay = document.getElementById('overlay');
     const imgInput = document.getElementById('img-input');
     const imagePreviewContainer = document.getElementById('image-preview-container');
+    const customPersonaInput = document.getElementById('custom-persona');
     
     let currentChatId = Date.now();
     let currentModel = 'nasoro-2-fast';
     let allChats = JSON.parse(localStorage.getItem('nasoro_ultra_archive') || '{}');
     let selectedImages = [];
     
+    // --- STARTUP LOGIC ---
+    window.addEventListener('load', () => {
+      // 1. Fade out startup screen
+      setTimeout(() => {
+        const startup = document.getElementById('startup-screen');
+        startup.style.opacity = '0';
+        startup.style.visibility = 'hidden';
+      }, 2000); // 2 seconds animation
+    });
+
+    // --- CAPTCHA LOGIC ---
+    function onTurnstileSuccess() {
+      // Called when Turnstile verifies or Simulated button clicked
+      const gateway = document.getElementById('security-gateway');
+      gateway.style.transform = "translateY(-100%)"; // Slide up away
+    }
+
+    // --- NOTIFICATIONS LOGIC ---
+    const hotTakes = [
+      "Nasoro on the way to save you from psychological boredom! Wahoo!",
+      "Pro tip: The Scientist model thinks harder than I do.",
+      "Just checked the servers, they're chilly.",
+      "Are you coding? Oro Coder is waiting.",
+      "Did you know? I don't sleep. Ever."
+    ];
+
+    function toggleNotifications() {
+      if (!("Notification" in window)) {
+        alert("This browser does not support desktop notifications");
+        return;
+      }
+      
+      Notification.requestPermission().then(permission => {
+        if (permission === "granted") {
+          document.getElementById('notify-btn').innerHTML = '<i class="fa-solid fa-check text-green-500"></i> Enabled';
+          new Notification("Notifications Enabled", { body: "Nasoro will now drop hot takes randomly." });
+          
+          // Start Hot Take Interval (Every 10-30 mins for demo purposes)
+          setInterval(() => {
+            if(document.visibilityState === 'visible') { // Only if tab open/visible
+               const randomTake = hotTakes[Math.floor(Math.random() * hotTakes.length)];
+               new Notification("Nasoro says:", { body: randomTake, icon: LOGO_URL });
+            }
+          }, 600000); // 10 minutes
+        }
+      });
+    }
+
+    // --- EXISTING CHAT LOGIC ---
     chatField.addEventListener('input', function() {
       this.style.height = 'auto';
       this.style.height = (this.scrollHeight) + 'px';
@@ -329,17 +328,7 @@
     function setModel(key) {
       currentModel = key;
       document.querySelectorAll('.model-btn').forEach(b => b.classList.remove('active'));
-      
-      const btnMap = {
-        'nasoro-2-fast': 'btn-fast',
-        'nasoro-2': 'btn-std',
-        'nasoro-2-pro': 'btn-pro',
-        'nasoro-2-chat': 'btn-chat',
-        'nasoro-2-coder': 'btn-coder',
-        'nasoro-2-scientist': 'btn-scientist',
-        'nasoro-2-image': 'btn-image' // ADDED IMAGE MODEL MAPPING
-      };
-      
+      const btnMap = { 'nasoro-2-fast':'btn-fast', 'nasoro-2':'btn-std', 'nasoro-2-pro':'btn-pro', 'nasoro-2-chat':'btn-chat', 'nasoro-2-coder':'btn-coder', 'nasoro-2-scientist':'btn-scientist', 'nasoro-2-image':'btn-image' };
       const btnId = btnMap[key];
       if(btnId) document.getElementById(btnId).classList.add('active');
       if(window.innerWidth < 768) closeSidebar();
@@ -369,10 +358,7 @@
       `).join('');
     }
 
-    window.removeImage = (index) => {
-      selectedImages.splice(index, 1);
-      renderImages();
-    };
+    window.removeImage = (index) => { selectedImages.splice(index, 1); renderImages(); };
 
     function saveContext() {
       const msgs = Array.from(chatContainer.querySelectorAll('.msg-group')).map(el => el.outerHTML);
@@ -387,52 +373,25 @@
     function renderArchive() {
       const historyList = document.getElementById('history-list');
       const ids = Object.keys(allChats).sort((a,b) => b-a);
-      
       historyList.innerHTML = ids.length ? ids.map(id => `
         <div class="group flex items-center justify-between p-2 hover:bg-white/5 rounded-lg cursor-pointer transition-colors" onclick="loadChat('${id}')">
           <div class="flex items-center gap-3 min-w-0">
              <i class="fa-regular fa-message text-zinc-600 text-xs"></i>
              <span class="text-xs text-zinc-300 truncate">${allChats[id].title}</span>
           </div>
-          <button onclick="deleteChat('${id}', event)" class="text-zinc-600 hover:text-red-400 px-2 opacity-0 group-hover:opacity-100 transition-opacity">
-            <i class="fa-solid fa-trash text-xs"></i>
-          </button>
+          <button onclick="deleteChat('${id}', event)" class="text-zinc-600 hover:text-red-400 px-2 opacity-0 group-hover:opacity-100 transition-opacity"><i class="fa-solid fa-trash text-xs"></i></button>
         </div>
       `).join('') : '<p class="text-[10px] text-zinc-600 p-2 italic">No history found.</p>';
     }
 
-    window.deleteChat = (id, e) => { 
-      e.stopPropagation();
-      delete allChats[id]; 
-      localStorage.setItem('nasoro_ultra_archive', JSON.stringify(allChats)); 
-      renderArchive(); 
-      if(currentChatId == id) startNewChat(); 
-    };
-
-    window.loadChat = (id) => { 
-      currentChatId = id; 
-      welcomeUi.classList.add('hidden'); 
-      chatContainer.innerHTML = allChats[id].html.join(''); 
-      addCopyListeners();
-      chatContainer.scrollTop = chatContainer.scrollHeight;
-      if(window.innerWidth < 768) closeSidebar(); 
-    };
-
-    window.startNewChat = () => { 
-      currentChatId = Date.now(); 
-      chatContainer.innerHTML = ''; 
-      chatContainer.appendChild(welcomeUi); 
-      welcomeUi.classList.remove('hidden'); 
-      selectedImages = []; 
-      renderImages();
-      if(window.innerWidth < 768) closeSidebar(); 
-        };
+    window.deleteChat = (id, e) => { e.stopPropagation(); delete allChats[id]; localStorage.setItem('nasoro_ultra_archive', JSON.stringify(allChats)); renderArchive(); if(currentChatId == id) startNewChat(); };
+    window.loadChat = (id) => { currentChatId = id; welcomeUi.classList.add('hidden'); chatContainer.innerHTML = allChats[id].html.join(''); addCopyListeners(); chatContainer.scrollTop = chatContainer.scrollHeight; if(window.innerWidth < 768) closeSidebar(); };
+    window.startNewChat = () => { currentChatId = Date.now(); chatContainer.innerHTML = ''; chatContainer.appendChild(welcomeUi); welcomeUi.classList.remove('hidden'); selectedImages = []; renderImages(); if(window.innerWidth < 768) closeSidebar(); };
 
     function postMessage(content, role, images = []) {
       welcomeUi.classList.add('hidden');
       const isNas = role === 'nasoro';
       let imgHtml = images.map(src => `<img src="${src}" class="max-w-[200px] rounded-lg border border-white/10 mb-2">`).join('');
-      
       const html = `
         <div class="msg-group max-w-3xl mx-auto flex gap-4 md:gap-6 mb-8 msg-anim">
           <div class="w-8 h-8 md:w-10 md:h-10 rounded-lg flex-shrink-0 overflow-hidden ${isNas ? 'shadow-lg shadow-blue-900/20' : ''}">
@@ -449,12 +408,8 @@
             </div>
           </div>
         </div>`;
-      
       chatContainer.insertAdjacentHTML('beforeend', html);
-      if(isNas) {
-        document.querySelectorAll('pre code').forEach(el => hljs.highlightElement(el));
-        addCopyListeners();
-      }
+      if(isNas) { document.querySelectorAll('pre code').forEach(el => hljs.highlightElement(el)); addCopyListeners(); }
       chatContainer.scrollTo({ top: chatContainer.scrollHeight, behavior: 'smooth' });
       saveContext();
     }
@@ -464,15 +419,8 @@
     function addCopyListeners() {
       document.querySelectorAll('pre').forEach(pre => {
         if(!pre.querySelector('.copy-btn')) {
-          const btn = document.createElement('button');
-          btn.className = 'copy-btn';
-          btn.innerHTML = '<i class="fa-regular fa-copy"></i> Copy';
-          btn.onclick = () => {
-            const code = pre.querySelector('code').innerText;
-            navigator.clipboard.writeText(code);
-            btn.innerHTML = '<i class="fa-solid fa-check"></i> Copied';
-            setTimeout(() => btn.innerHTML = '<i class="fa-regular fa-copy"></i> Copy', 2000);
-          };
+          const btn = document.createElement('button'); btn.className = 'copy-btn'; btn.innerHTML = '<i class="fa-regular fa-copy"></i> Copy';
+          btn.onclick = () => { const code = pre.querySelector('code').innerText; navigator.clipboard.writeText(code); btn.innerHTML = '<i class="fa-solid fa-check"></i> Copied'; setTimeout(() => btn.innerHTML = '<i class="fa-regular fa-copy"></i> Copy', 2000); };
           pre.appendChild(btn);
         }
       });
@@ -496,18 +444,20 @@
       const loadingHtml = `
         <div id="${tid}" class="msg-group max-w-3xl mx-auto flex gap-4 md:gap-6 mb-8 msg-anim opacity-50">
           <div class="w-8 h-8 md:w-10 md:h-10 rounded-lg overflow-hidden"><img src="${LOGO_URL}" class="w-full h-full object-cover"></div>
-          <div class="flex gap-1 items-center h-8">
-            <div class="typing-dot"></div><div class="typing-dot"></div><div class="typing-dot"></div>
-          </div>
+          <div class="flex gap-1 items-center h-8"><div class="typing-dot"></div><div class="typing-dot"></div><div class="typing-dot"></div></div>
         </div>`;
       chatContainer.insertAdjacentHTML('beforeend', loadingHtml);
       chatContainer.scrollTop = chatContainer.scrollHeight;
+
+      // GET PERSONA
+      const persona = customPersonaInput.value;
 
       try {
         const res = await fetch(API_URL, { 
           method: 'POST', 
           headers: { 'Content-Type': 'application/json' }, 
-          body: JSON.stringify({ message: msg, images: payloadImages, model: currentModel }) 
+          // INCLUDE CUSTOM PERSONA
+          body: JSON.stringify({ message: msg, images: payloadImages, model: currentModel, customPersona: persona }) 
         });
         
         const data = await res.json();
@@ -516,6 +466,9 @@
         if (res.status === 429) {
           showToast("⚠️ Rate limit reached. Slow down...");
           postMessage("I'm receiving too many requests. Please wait a moment...", 'nasoro');
+          if("Notification" in window && Notification.permission === "granted") {
+             new Notification("Rate Limit Hit", { body: "Take a breather, Nasoro needs a coffee break." });
+          }
         } else if (res.ok) {
           postMessage(data.reply || "Thinking...", 'nasoro');
         } else {
@@ -541,12 +494,7 @@
     }
 
     sendAction.addEventListener('click', handleSend);
-    chatField.addEventListener('keydown', e => { 
-      if(e.key === 'Enter' && !e.shiftKey) { 
-        e.preventDefault(); 
-        handleSend(); 
-      } 
-    });
+    chatField.addEventListener('keydown', e => { if(e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSend(); } });
     
     renderArchive();
     setModel('nasoro-2-fast'); 
