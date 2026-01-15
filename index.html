@@ -467,7 +467,7 @@
           showToast("⚠️ Rate limit reached. Slow down...");
           postMessage("I'm receiving too many requests. Please wait a moment...", 'nasoro');
           if("Notification" in window && Notification.permission === "granted") {
-             new Notification("Rate Limit Hit", { body: "Take a breather, Nasoro needs a coffee break." });
+             new Notification("Rate Limit Hit", { body: "Take a breather, Nasoro needs a coffee break..." });
           }
         } else if (res.ok) {
           postMessage(data.reply || "Thinking...", 'nasoro');
@@ -478,7 +478,7 @@
       } catch (err) { 
         console.error(err);
         document.getElementById(tid).remove(); 
-        postMessage("Error: Could not connect to Nasoro Backend.", 'nasoro'); 
+        postMessage("Error: Could not connect to Nasoro's backend.", 'nasoro'); 
         showToast("❌ Connection Failed");
       } finally {
         sendAction.disabled = false;
