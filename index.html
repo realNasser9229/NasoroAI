@@ -178,15 +178,15 @@
       <div>
         <h3 class="text-[10px] uppercase tracking-widest text-zinc-600 font-bold mb-3 px-2">Core Models</h3>
         <div class="space-y-1">
-          <button onclick="setModel('nasoro-2-fast')" id="btn-fast" class="model-btn w-full flex items-center gap-3 p-2 rounded-lg text-left active">
+          <button onclick="setModel('nasoro-3-fast')" id="btn-fast" class="model-btn w-full flex items-center gap-3 p-2 rounded-lg text-left active">
             <div class="icon-box w-8 h-8 rounded-md bg-cyan-500/10 text-cyan-400 flex items-center justify-center"><i class="fa-solid fa-bolt text-xs"></i></div>
             <div><p class="font-semibold text-zinc-200 text-xs">Oro 3 Fast</p><p class="text-[10px] text-zinc-500">Speed optimized.</p></div>
           </button>
-          <button onclick="setModel('nasoro-2')" id="btn-std" class="model-btn w-full flex items-center gap-3 p-2 rounded-lg text-left">
+          <button onclick="setModel('nasoro-3')" id="btn-std" class="model-btn w-full flex items-center gap-3 p-2 rounded-lg text-left">
             <div class="icon-box w-8 h-8 rounded-md bg-white/10 text-zinc-200 flex items-center justify-center"><i class="fa-solid fa-microchip text-xs"></i></div>
             <div><p class="font-semibold text-zinc-200 text-xs">Oro 3</p><p class="text-[10px] text-zinc-500">Balanced logic.</p></div>
           </button>
-          <button onclick="setModel('nasoro-2-pro')" id="btn-pro" class="model-btn w-full flex items-center gap-3 p-2 rounded-lg text-left">
+          <button onclick="setModel('nasoro-3-pro')" id="btn-pro" class="model-btn w-full flex items-center gap-3 p-2 rounded-lg text-left">
             <div class="icon-box w-8 h-8 rounded-md bg-violet-500/10 text-violet-400 flex items-center justify-center"><i class="fa-solid fa-brain text-xs"></i></div>
             <div><p class="font-semibold text-zinc-200 text-xs">Oro 3 Pro</p><p class="text-[10px] text-zinc-500">Deep logic.</p></div>
           </button>
@@ -201,15 +201,15 @@
             <div><p class="font-semibold text-zinc-200 text-xs">Oro 3 Chat</p><p class="text-[10px] text-zinc-500">Unfiltered Roleplay.</p></div>
           </button>
 
-          <button onclick="setModel('nasoro-2-coder')" id="btn-coder" class="model-btn w-full flex items-center gap-3 p-2 rounded-lg text-left">
+          <button onclick="setModel('nasoro-3-coder')" id="btn-coder" class="model-btn w-full flex items-center gap-3 p-2 rounded-lg text-left">
             <div class="icon-box w-8 h-8 rounded-md bg-emerald-500/10 text-emerald-400 flex items-center justify-center"><i class="fa-solid fa-code text-xs"></i></div>
             <div><p class="font-semibold text-zinc-200 text-xs">Oro 3 Coder</p><p class="text-[10px] text-zinc-500">With Code Runner.</p></div>
           </button>
-          <button onclick="setModel('nasoro-2-scientist')" id="btn-scientist" class="model-btn w-full flex items-center gap-3 p-2 rounded-lg text-left">
+          <button onclick="setModel('nasoro-3-scientist')" id="btn-scientist" class="model-btn w-full flex items-center gap-3 p-2 rounded-lg text-left">
             <div class="icon-box w-8 h-8 rounded-md bg-teal-500/10 text-teal-400 flex items-center justify-center"><i class="fa-solid fa-flask text-xs"></i></div>
             <div><p class="font-semibold text-zinc-200 text-xs">Oro 3 Scientist</p><p class="text-[10px] text-zinc-500">Research & Search.</p></div>
           </button>
-          <button onclick="setModel('nasoro-2-image')" id="btn-image" class="model-btn w-full flex items-center gap-3 p-2 rounded-lg text-left">
+          <button onclick="setModel('nasoro-3-image')" id="btn-image" class="model-btn w-full flex items-center gap-3 p-2 rounded-lg text-left">
             <div class="icon-box w-8 h-8 rounded-md bg-pink-500/10 text-pink-400 flex items-center justify-center"><i class="fa-solid fa-paint-brush text-xs"></i></div>
             <div><p class="font-semibold text-zinc-200 text-xs">Oro 3 Image</p><p class="text-[10px] text-zinc-500">Flux Art Engine.</p></div>
           </button>
@@ -347,13 +347,13 @@
   
   // Mapping the internal keys to the Button IDs
   const btnMap = { 
-    'nasoro-2-fast':'btn-fast', 
-    'nasoro-2':'btn-std', 
-    'nasoro-2-pro':'btn-pro', 
+    'nasoro-3-fast':'btn-fast', 
+    'nasoro-3':'btn-std', 
+    'nasoro-3-pro':'btn-pro', 
     'nasoro-3-chat':'btn-chat', 
-    'nasoro-2-coder':'btn-coder', 
-    'nasoro-2-scientist':'btn-scientist', 
-    'nasoro-2-image':'btn-image' 
+    'nasoro-3-coder':'btn-coder', 
+    'nasoro-3-scientist':'btn-scientist', 
+    'nasoro-3-image':'btn-image' 
   };
   
   const btnId = btnMap[key];
@@ -477,7 +477,7 @@
           pre.appendChild(cBtn);
           
           // Run Button (Only for Coder model + JS)
-          if(currentModel === 'nasoro-2-coder' && (pre.querySelector('.language-javascript') || pre.querySelector('.language-js'))) {
+          if(currentModel === 'nasoro-3-coder' && (pre.querySelector('.language-javascript') || pre.querySelector('.language-js'))) {
             const rBtn = document.createElement('button'); rBtn.className = 'code-action-btn run-btn'; rBtn.innerHTML = '<i class="fa-solid fa-play"></i> Run';
             rBtn.onclick = () => runCode(rBtn);
             pre.appendChild(rBtn);
@@ -496,13 +496,13 @@
   
   // Mapping internal keys to professional UI Display Names
   const displayNames = {
-    'nasoro-2-fast': 'Oro 3 Fast',
-    'nasoro-2': 'Oro 3 Standard',
-    'nasoro-2-pro': 'Oro 3 Pro',
+    'nasoro-3-fast': 'Oro 3 Fast',
+    'nasoro-3': 'Oro 3 Standard',
+    'nasoro-3-pro': 'Oro 3 Pro',
     'nasoro-3-chat': 'Oro 3 Chat',
-    'nasoro-2-coder': 'Oro 3 Coder',
-    'nasoro-2-scientist': 'Oro 3 Scientist',
-    'nasoro-2-image': 'Oro 3 Image'
+    'nasoro-3-coder': 'Oro 3 Coder',
+    'nasoro-3-scientist': 'Oro 3 Scientist',
+    'nasoro-3-image': 'Oro 3 Image'
   };
 
   const modelBadge = displayNames[currentModel] || 'Nasoro 3';
@@ -637,7 +637,7 @@
     chatField.addEventListener('keydown', e => { if(e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSend(); } });
     
     renderArchive();
-    setModel('nasoro-2-fast'); 
+    setModel('nasoro-3-fast'); 
   </script>
 </body>
 </html>
