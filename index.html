@@ -342,17 +342,24 @@
     function closeSidebar() { sidebar.classList.remove('sidebar-active'); overlay.classList.add('hidden'); }
 
     function setModel(key) {
-      currentModel = key;
-      document.querySelectorAll('.model-btn').forEach(b => b.classList.remove('active'));
-      const btnMap = { 
-        'nasoro-2-fast':'btn-fast', 'nasoro-2':'btn-std', 'nasoro-2-pro':'btn-pro', 
-        'nasoro-3-chat':'btn-chat', 'nasoro-2-coder':'btn-coder', 
-        'nasoro-2-scientist':'btn-scientist', 'nasoro-2-image':'btn-image' 
-      };
-      const btnId = btnMap[key];
-      if(btnId) document.getElementById(btnId).classList.add('active');
-      if(window.innerWidth < 768) closeSidebar();
-    }
+  currentModel = key;
+  document.querySelectorAll('.model-btn').forEach(b => b.classList.remove('active'));
+  
+  // Mapping the internal keys to the Button IDs
+  const btnMap = { 
+    'nasoro-2-fast':'btn-fast', 
+    'nasoro-2':'btn-std', 
+    'nasoro-2-pro':'btn-pro', 
+    'nasoro-3-chat':'btn-chat', 
+    'nasoro-2-coder':'btn-coder', 
+    'nasoro-2-scientist':'btn-scientist', 
+    'nasoro-2-image':'btn-image' 
+  };
+  
+  const btnId = btnMap[key];
+  if(btnId) document.getElementById(btnId).classList.add('active');
+  if(window.innerWidth < 768) closeSidebar();
+}
 
     // --- IMAGE HANDLING ---
     imgInput.addEventListener('change', (e) => {
@@ -480,24 +487,57 @@
     }
 
     function postMessage(content, role, images = []) {
-  welcomeUi.classList.add('hidden');
+  const welcomeUi = document.getElementById('welcome-ui');
+  const chatContainer = document.getElementById('chat-container');
+  if (welcomeUi) welcomeUi.classList.add('hidden');
+
   const isNas = role === 'nasoro';
-  const uniqueId = Date.now(); // Generate ONE timestamp to use for both
+  const uniqueId = Date.now(); // Prevents the ID mismatch error
   
-  let imgHtml = images.map(src => `<img src="${src}" class="max-w-[200px] rounded-lg border border-white/10 mb-2">`).join('');
+  // Mapping internal keys to professional UI Display Names
+  const displayNames = {
+    'nasoro-2-fast': 'Oro 3 Fast',
+    'nasoro-2': 'Oro 3 Standard',
+    'nasoro-2-pro': 'Oro 3 Pro',
+    'nasoro-3-chat': 'Oro 3 Chat',
+    'nasoro-2-coder': 'Oro 3 Coder',
+    'nasoro-2-scientist': 'Oro 3 Scientist',
+    'nasoro-2-image': 'Oro 3 Image'
+  };
+
+  const modelBadge = displayNames[currentModel] || 'Nasoro 3';
+  
+  // Handle attached images for the UI
+  let imgHtml = images.map(src => `
+    <div class="relative group mb-2 inline-block">
+      <img src="${src}" class="max-w-[250px] max-h-[250px] rounded-xl border border-white/10 shadow-2xl transition-transform group-hover:scale-[1.02]">
+    </div>
+  `).join('');
   
   const html = `
-    <div class="msg-group max-w-3xl mx-auto flex gap-4 md:gap-6 mb-8 msg-anim">
-      <div class="w-8 h-8 md:w-10 md:h-10 rounded-lg flex-shrink-0 overflow-hidden ${isNas ? 'shadow-lg shadow-blue-900/20' : ''}">
-        ${isNas ? `<img src="${LOGO_URL}" class="w-full h-full object-cover">` : `<div class="w-full h-full bg-zinc-800 flex items-center justify-center text-[10px] text-zinc-400 font-bold">YOU</div>`}
+    <div class="msg-group max-w-3xl mx-auto flex gap-4 md:gap-6 mb-10 msg-anim">
+      <div class="w-9 h-9 md:w-11 md:h-11 rounded-xl flex-shrink-0 overflow-hidden ${isNas ? 'ring-2 ring-blue-500/20 shadow-lg shadow-blue-500/10' : 'ring-1 ring-white/10'}">
+        ${isNas 
+          ? `<img src="${LOGO_URL}" class="w-full h-full object-cover">` 
+          : `<div class="w-full h-full bg-gradient-to-br from-zinc-700 to-zinc-900 flex items-center justify-center text-[10px] text-zinc-300 font-bold">YOU</div>`
+        }
       </div>
+
       <div class="flex-1 min-w-0 pt-1">
-        <div class="flex items-center gap-2 mb-1">
-          <span class="text-xs font-bold text-zinc-300">${isNas ? 'Nasoro' : 'You'}</span>
-          ${isNas ? `<span class="text-[9px] px-1.5 py-0.5 rounded bg-zinc-800 text-zinc-500 border border-white/5 uppercase tracking-wide" id="status-${uniqueId}">${currentModel.replace('nasoro-', '')}</span>` : ''}
+        <div class="flex items-center gap-3 mb-1.5">
+          <span class="text-[13px] font-bold tracking-tight ${isNas ? 'text-blue-400' : 'text-zinc-200'}">
+            ${isNas ? 'Nasoro' : 'You'}
+          </span>
+          ${isNas ? `
+            <span class="text-[9px] px-2 py-0.5 rounded-full bg-blue-500/10 text-blue-400 border border-blue-500/20 uppercase font-black tracking-widest" id="status-${uniqueId}">
+              ${modelBadge}
+            </span>
+          ` : ''}
         </div>
+
         ${imgHtml}
-        <div class="${isNas ? 'prose prose-invert text-zinc-300' : 'user-txt text-white'} text-[15px] leading-relaxed" id="${isNas ? 'ai-content-' + uniqueId : ''}">
+
+        <div class="${isNas ? 'prose prose-invert prose-blue max-w-none text-zinc-300' : 'user-txt text-zinc-100'} text-[15px] leading-relaxed" id="${isNas ? 'ai-content-' + uniqueId : ''}">
           ${isNas ? (content ? marked.parse(content) : '') : content.replace(/\n/g, '<br>')}
         </div>
       </div>
@@ -505,17 +545,27 @@
   
   chatContainer.insertAdjacentHTML('beforeend', html);
   
+  // Syntax Highlighting for code blocks
   if(isNas && content) { 
-    document.querySelectorAll('pre code').forEach(el => hljs.highlightElement(el)); 
+    document.querySelectorAll('pre code').forEach(el => {
+      if (!el.dataset.highlighted) {
+        hljs.highlightElement(el);
+        el.dataset.highlighted = 'true';
+      }
+    }); 
     addCopyListeners(); 
   }
   
+  // Auto-scroll to bottom
   chatContainer.scrollTo({ top: chatContainer.scrollHeight, behavior: 'smooth' });
+  
+  // Context Management
   saveContext();
   
-  // Now it returns the EXACT element we just created
+  // Return the specific div for the streaming function to target
   return isNas ? document.getElementById('ai-content-' + uniqueId) : null;
     }
+    
     
 
     // --- MAIN SEND LOGIC ---
