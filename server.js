@@ -52,32 +52,32 @@ function optimizeMessageForSpecialists(content) {
 function getModelID(nasoroModel) {
   switch (nasoroModel) {
     // 1. FAST MODELS
-    case "nasoro-2-fast":      
+    case "nasoro-3-fast":      
       return "llama-3.1-8b-instant";
     
     // 2. LOGIC MODELS (Updated to Llama 3.3)
-    case "nasoro-2":           
+    case "nasoro-3":           
       return "llama-3.3-70b-versatile"; 
-    case "nasoro-2-pro":       
+    case "nasoro-3-pro":       
       return "llama-3.3-70b-specdec"; // Fast inference for heavy logic
     
     // 3. ROLEPLAY MODEL (New Frontend Key)
     case "nasoro-3-chat":      
-    case "nasoro-2-chat":      
+    case "nasoro-3-chat":      
       return "llama-3.3-70b-versatile"; // Best for creative writing
     
     // 4. CODER MODEL
-    case "nasoro-2-coder":     
+    case "nasoro-3-coder":     
       // Llama 3.3 70B is currently more stable/smarter than Qwen on Groq free tier
       return "llama-3.3-70b-versatile"; 
     
     // 5. SCIENTIST MODEL
-    case "nasoro-2-scientist": 
+    case "nasoro-3-scientist": 
       // DeepSeek is great, but fallback to Llama 3.1 70B if it fails (using Llama here for stability)
       return "llama-3.1-70b-versatile"; 
       
     // 6. IMAGE (Text Gen for Pollinations)
-    case "nasoro-2-image":     
+    case "nasoro-3-image":     
       return "llama-3.1-8b-instant";
       
     default:                   
@@ -122,14 +122,14 @@ app.post("/ai", async (req, res) => {
     
     // 1. Roleplay (Chat)
     if (model === "nasoro-3-chat" || model === "nasoro-2-chat") {
-      systemInstruction = `${baseSystem} You are in UNFILTERED Roleplay Mode. 
-      Fully embody the persona. Do not lecture. Use *actions* for movements. 
-      If no persona is given, act as a witty companion.`;
+      systemInstruction = `${baseSystem} You are Nasoro in Roleplay Mode. 
+      Fully embody the roleplay persona. Do not lecture. Use *asterisks* for roleplays. 
+      If no persona is given, act as a witty roleplay companion.`;
       temperature = 0.85; // Higher creativity
     } 
     
     // 2. Coder
-    else if (model === "nasoro-2-coder") {
+    else if (model === "nasoro-3-coder") {
       systemInstruction = `You are Nasoro Coder. 
       1. Provide ONLY the code unless explanation is requested. 
       2. Always use modern ES6+ Javascript or Python 3.10+. 
@@ -138,7 +138,7 @@ app.post("/ai", async (req, res) => {
     } 
     
     // 3. Scientist (Researcher)
-    else if (model === "nasoro-2-scientist") {
+    else if (model === "nasoro-3-scientist") {
       systemInstruction = `You are Nasoro Scientist (PhD Researcher).
       Format: Use Headers, Bullet Points, and clean markdown.
       Methodology:
@@ -149,7 +149,7 @@ app.post("/ai", async (req, res) => {
     } 
     
     // 4. Image Generation Logic
-    else if (model === "nasoro-2-image") {
+    else if (model === "nasoro-3-image") {
       systemInstruction = `You are the Oro Image Engine.
       User request: "${message}"
       Task: Convert this into a detailed Stable Diffusion prompt.
@@ -170,7 +170,7 @@ app.post("/ai", async (req, res) => {
 
     // --- HISTORY MANAGEMENT ---
     let historyLimit = 20;
-    if (model === "nasoro-2-pro") historyLimit = 10; // Keep heavy models light on context
+    if (model === "nasoro-3-pro") historyLimit = 10; // Keep heavy models light on context
     
     let processedHistory = session.history.slice(-historyLimit);
 
