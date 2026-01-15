@@ -9,10 +9,10 @@ const app = express();
 app.use(cors());
 app.use(express.json({ limit: "50mb" }));
 
-const GROQ_KEY = process.env.OPENAI_API_KEY; 
+const GROQ_KEY = process.env.OPENAI_API_KEY; // Using Groq key
 
 /* ============================
-   USER SESSIONS
+   USER SESSIONS & LIMITS
 ============================ */
 const userSessions = new Map();
 
@@ -39,32 +39,29 @@ const MAX_REQUESTS_PER_HOUR = 60;
 const RESET_TIME = 60 * 60 * 1000;
 
 /* ============================
+   TOKEN OPTIMIZATION UTILS
+============================ */
+// Idea #1: Optimize power on prompts. 
+// Removes polite filler words to save tokens for logic-heavy models.
+function optimizeMessageForSpecialists(content) {
+  // Regex to remove common conversational fluff
+  const fluff = /^(hello|hi|hey|please|thanks|thank you|can you|could you|help me)\b/gi;
+  return content.replace(fluff, "").trim();
+}
+
+/* ============================
    MODEL MAPPING
 ============================ */
 function getModelID(nasoroModel) {
   switch (nasoroModel) {
-    case "nasoro-2-fast":     
-      return "llama-3.1-8b-instant";
-    case "nasoro-2":          
-      return "llama-3.1-70b-versatile";
-    case "nasoro-2-pro":      
-      return "llama-3.3-70b-versatile"; // Flagship
-    case "nasoro-2-chat":     
-      return "llama3-70b-8192";
-      
-    // --- SPECIALIST MODELS ---
-    case "nasoro-2-coder":
-      return "qwen3-32b"; 
-      
-    case "nasoro-2-scientist":
-      return "deepseek-r1-distill-llama-70b"; 
-
-    case "nasoro-2-image":
-      // We use the fast Llama model to "Engineering the Prompt" for the image
-      return "llama-3.1-8b-instant";
-      
-    default:
-      return "llama-3.1-8b-instant"; 
+    case "nasoro-2-fast":      return "llama-3.1-8b-instant";
+    case "nasoro-2":           return "llama-3.1-70b-versatile";
+    case "nasoro-2-pro":       return "llama-3.3-70b-versatile"; 
+    case "nasoro-2-chat":      return "llama3-70b-8192";
+    case "nasoro-2-coder":     return "qwen-2.5-coder-32b"; // Updated to correct Groq ID
+    case "nasoro-2-scientist": return "deepseek-r1-distill-llama-70b"; 
+    case "nasoro-2-image":     return "llama-3.1-8b-instant";
+    default:                   return "llama-3.1-8b-instant"; 
   }
 }
 
@@ -72,11 +69,12 @@ function getModelID(nasoroModel) {
    MAIN AI ROUTE
 ============================ */
 app.post("/ai", async (req, res) => {
-  const { message, images, model } = req.body;
+  // Idea #3: customPersona added to body
+  const { message, images, model, customPersona } = req.body;
   const userId = getUserId(req);
   const session = getSession(userId);
 
-  // ---- rate limit reset ----
+  // ---- Rate Limit Reset Logic ----
   if (Date.now() - session.lastReset > RESET_TIME) {
     session.requests = 0;
     session.lastReset = Date.now();
@@ -84,85 +82,98 @@ app.post("/ai", async (req, res) => {
 
   if (session.requests >= MAX_REQUESTS_PER_HOUR) {
     return res.status(429).json({
-      reply: "Rate limit hit. Take a breather."
+      reply: "Rate limit hit. Take a breather.",
+      limitHit: true // Flag for frontend notification
     });
   }
   session.requests++;
 
   try {
     let targetModel = getModelID(model);
-    let systemInstruction = "You are Nasoro, a chill AI by OpenOro™ (Nas9229alt/RazNas). Be helpful and smart, never hallucinate in your answers. Keep replies short, use casual slangs.";
-    let temperature = 0.7; // Default temp
+    
+    // Base Core Instruction
+    let baseSystem = "You are Nasoro, a chill AI by OpenOro™. Be helpful and smart. ";
+    
+    // Idea #3: Apply User Custom Persona (overrides style, keeps safety)
+    if (customPersona && customPersona.trim() !== "") {
+      baseSystem += ` PERSONALITY OVERRIDE: ${customPersona}. `;
+    } else {
+      baseSystem += "Keep replies short, use casual slangs. ";
+    }
 
-    // --- CUSTOM SYSTEM PROMPTS ---
+    let systemInstruction = baseSystem;
+    let temperature = 0.7;
+
+    // --- SPECIALIST LOGIC ---
     if (model === "nasoro-2-chat") {
-      systemInstruction = `You are Nasoro 2 Chat. Stay in character always. Use *asterisks* for actions.`;
+      systemInstruction = `${baseSystem} You are Nasoro 2 Chat. Stay in character. Use *asterisks* for actions.`;
     } 
     else if (model === "nasoro-2-coder") {
-      systemInstruction = `You are Nasoro Coder. You are an expert Software Engineer. Provide clean, optimized code. Explain logic briefly.`;
+      systemInstruction = `You are Nasoro Coder. Expert Software Engineer. Provide clean, optimized code. Explain logic briefly.`;
     } 
     else if (model === "nasoro-2-scientist") {
-      systemInstruction = `You are Nasoro Scientist. You are a PhD-level researcher. Focus on facts, scientific method, and deep analysis.`;
-      temperature = 0.6; // Lower temp for factual accuracy
+      // Idea #1 (cont): Scientist is the Researcher
+      systemInstruction = `You are Nasoro Scientist. You are a PhD-level Researcher. 
+      Analyze the query deeply. Think step-by-step. 
+      If the user asks for current info, clarify that your training data cuts off, but simulate a search methodology.`;
+      temperature = 0.6; 
     } 
     else if (model === "nasoro-2-image") {
-      // PROMPT ENGINEERING FOR POLLINATIONS
       systemInstruction = `You are the Oro 2 Image engine. 
-      Your ONLY job is to create a high-quality Markdown image link based on user requests.
-      
-      OUTPUT FORMAT: 
-      ![Image](https://image.pollinations.ai/prompt/{description}?width=1024&height=1024&nologo=true&seed={random})
-      
-      INSTRUCTIONS:
-      1. Take the user's simple request and enhance it with artistic details (e.g., 'cinematic lighting, 8k, hyperrealistic, detailed texture').
-      2. Replace {description} with your enhanced text (ensure spaces are replaced with %20 or underscores).
-      3. Replace {random} with a random 5-digit number to ensure uniqueness.
-      4. DO NOT write any conversational text. Output ONLY the markdown link.`;
-      
-      temperature = 1.0; // Max creativity for art prompts
+      OUTPUT FORMAT: ![Image](https://image.pollinations.ai/prompt/{description}?width=1024&height=1024&nologo=true&seed={random})
+      1. Enhance the user prompt with artistic details.
+      2. Replace {description} with enhanced text (%20 for spaces).
+      3. Replace {random} with random number.
+      4. Output ONLY the markdown link.`;
+      temperature = 1.0; 
     }
 
-    // Vision Switch (Overrides textual models if image is present)
+    // Vision Switch
     if (images?.length > 0) {
       targetModel = "llama-3.2-11b-vision-preview";
-      if(model === "nasoro-2-coder") systemInstruction += " Analyze the code/diagram in this image.";
+      if(model === "nasoro-2-coder") systemInstruction += " Analyze code in this image.";
     }
 
     /* ============================
-       HISTORY LIMITS
+       HISTORY CONSTRUCTION
     ============================ */
     let historyLimit = 40;
+    if (model === "nasoro-2-pro" || model === "nasoro-2-scientist") historyLimit = 15;
+    if (model === "nasoro-2-image") historyLimit = 5;
+
+    // Idea #1: Optimization Step
+    // If it's a specialist, we clean the history to save context window
+    let processedHistory = session.history.slice(-historyLimit);
     
-    // Strict limit for Pro and Scientist to save resources
-    if (model === "nasoro-2-pro" || model === "nasoro-2-scientist") {
-      historyLimit = 15;
-    }
-    // Image mode doesn't need much history
-    if (model === "nasoro-2-image") {
-      historyLimit = 5; 
+    if (model === "nasoro-2-coder" || model === "nasoro-2-scientist") {
+      processedHistory = processedHistory.map(msg => ({
+        role: msg.role,
+        content: msg.role === 'user' ? optimizeMessageForSpecialists(msg.content) : msg.content
+      }));
     }
 
-    /* ============================
-       MESSAGE CONSTRUCTION
-    ============================ */
     const messages = [
       { role: "system", content: systemInstruction },
-      ...session.history.slice(-historyLimit)
+      ...processedHistory
     ];
 
+    // Add current message
     if (images?.length > 0) {
       const contentArray = [];
       if (message) contentArray.push({ type: "text", text: message });
-      images.forEach(img => {
-        contentArray.push({ type: "image_url", image_url: { url: img } });
-      });
+      images.forEach(img => contentArray.push({ type: "image_url", image_url: { url: img } }));
       messages.push({ role: "user", content: contentArray });
     } else {
-      if (message) messages.push({ role: "user", content: message });
+      // Apply optimization to current message if specialist
+      let finalMsg = message;
+      if (model === "nasoro-2-coder" || model === "nasoro-2-scientist") {
+        finalMsg = optimizeMessageForSpecialists(message);
+      }
+      if (finalMsg) messages.push({ role: "user", content: finalMsg });
     }
 
     /* ============================
-       GROQ API REQUEST
+       GROQ REQUEST
     ============================ */
     const groqResponse = await fetch("https://api.groq.com/openai/v1/chat/completions", {
       method: "POST",
@@ -187,15 +198,11 @@ app.post("/ai", async (req, res) => {
 
     const aiReply = data.choices?.[0]?.message?.content || "No reply generated.";
 
-    /* ============================
-       SAVE MEMORY
-    ============================ */
+    // Save unmodified history for readability
     session.history.push({ role: "user", content: message || "[Image Sent]" });
     session.history.push({ role: "assistant", content: aiReply });
 
-    if (session.history.length > 40) {
-      session.history.splice(0, session.history.length - 40);
-    }
+    if (session.history.length > 40) session.history.splice(0, session.history.length - 40);
 
     res.json({ reply: aiReply });
 
@@ -205,16 +212,8 @@ app.post("/ai", async (req, res) => {
   }
 });
 
-/* ============================
-   HEALTH CHECK
-============================ */
-app.get("/", (req, res) => {
-  res.send("Nasoro backend is alive.");
-});
+app.get("/", (req, res) => res.send("Nasoro backend is alive."));
 
-/* ============================
-   SERVER START
-============================ */
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => console.log(`Nasoro Backend Live on port ${PORT}`));
-         
+   
