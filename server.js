@@ -10,10 +10,19 @@ import hpp from "hpp";
 
 dotenv.config();
 
-// --- PERSISTENCE CONFIG (For Railway/Render Volumes) ---
-// If you mount a volume to /data in Railway, bans stay forever.
+// --- PERSISTENCE CONFIG (The "Memory" on Railway) ---
+// This connects to the Volume you just mounted at /data
 const DATA_DIR = process.env.RAILWAY_VOLUME_MOUNT_PATH || "./data";
-if (!fs.existsSync(DATA_DIR)) fs.mkdirSync(DATA_DIR);
+
+// Create the folder if it doesn't exist (local testing)
+if (!fs.existsSync(DATA_DIR)) {
+    try {
+        fs.mkdirSync(DATA_DIR, { recursive: true });
+        console.log(`📁 Created data directory at: ${DATA_DIR}`);
+    } catch (err) {
+        console.error("⚠️ Could not create data dir (might exist):", err);
+    }
+}
 
 const BLACKLIST_FILE = path.join(DATA_DIR, "blacklist.txt");
 const ACCESS_LOG = path.join(DATA_DIR, "access_logs.txt");
@@ -23,6 +32,10 @@ let BANNED_IPS = new Set();
 if (fs.existsSync(BLACKLIST_FILE)) {
     const fileContent = fs.readFileSync(BLACKLIST_FILE, "utf-8");
     BANNED_IPS = new Set(fileContent.split("\n").filter(line => line.trim() !== ""));
+    console.log(`🛡️ Guardian loaded ${BANNED_IPS.size} banned IPs from ${BLACKLIST_FILE}`);
+} else {
+    // Create the file if it doesn't exist
+    fs.writeFileSync(BLACKLIST_FILE, ""); 
 }
 
 const app = express();
@@ -30,10 +43,10 @@ const app = express();
 /* ============================
    LEVEL 1: GLOBAL ARMOR
 ============================ */
-app.use(helmet()); // Protects headers
-app.use(hpp()); // Prevents parameter pollution attacks
-app.use(cors()); // Allow cross-origin (configure specific domains for prod)
-app.use(express.json({ limit: "50mb" })); // Keep high limit for images, but filter text below
+app.use(helmet()); 
+app.use(hpp()); 
+app.use(cors()); 
+app.use(express.json({ limit: "50mb" })); 
 
 const GROQ_KEY = process.env.OPENAI_API_KEY; 
 
@@ -41,9 +54,10 @@ const GROQ_KEY = process.env.OPENAI_API_KEY;
 const userTraffic = new Map();
 
 /* ============================
-   LEVEL 2: THE GUARDIAN (Custom Middleware)
+   LEVEL 2: THE GUARDIAN (Middleware)
 ============================ */
 const guardian = (req, res, next) => {
+    // Get Real IP on Railway
     const ip = req.headers["x-forwarded-for"]?.split(",")[0] || req.headers["x-user-id"] || req.socket.remoteAddress;
     const now = Date.now();
 
@@ -52,12 +66,11 @@ const guardian = (req, res, next) => {
         return res.status(403).json({ reply: "🚫 [SECURITY] Your IP is permanently banned from Nasoro Network." });
     }
 
-    // 2. Log Access
+    // 2. Log Access (Async to not slow down)
     const logEntry = `[${new Date().toISOString()}] ${ip} | ${req.method} ${req.url}\n`;
-    fs.appendFileSync(ACCESS_LOG, logEntry);
+    fs.appendFile(ACCESS_LOG, logEntry, (err) => { if(err) console.error(err); });
 
     // 3. Payload Scrubber (Anti-Injection)
-    // Detects malicious code attempts inside the JSON body
     const payloadStr = JSON.stringify(req.body);
     const dangerPatterns = /(<script|DROP TABLE|UNION SELECT|process\.env|eval\(|document\.cookie)/gi;
     if (dangerPatterns.test(payloadStr)) {
@@ -84,6 +97,7 @@ const guardian = (req, res, next) => {
 function banUser(ip, reason, res) {
     if (!BANNED_IPS.has(ip)) {
         BANNED_IPS.add(ip);
+        // Write to the VOLUME so it persists forever
         fs.appendFileSync(BLACKLIST_FILE, ip + "\n");
         console.log(`🔥 [AUTO-BAN] IP: ${ip} | Reason: ${reason}`);
     }
@@ -91,19 +105,18 @@ function banUser(ip, reason, res) {
 }
 
 /* ============================
-   LEVEL 3: RATE LIMITER (The Gatekeeper)
+   LEVEL 3: RATE LIMITER
 ============================ */
-// Limits "Polite" spam (people just hitting send too fast)
 const spamLimiter = rateLimit({
     windowMs: 1 * 60 * 1000, // 1 minute
-    max: 20, // Max 20 messages per minute per IP
+    max: 20, 
     message: { reply: "🧊 **Chill out.** You're typing too fast. Wait a minute." },
     standardHeaders: true,
     legacyHeaders: false,
 });
 
 /* ============================
-   USER SESSIONS (Long-term Quota)
+   USER SESSIONS
 ============================ */
 const userSessions = new Map();
 
@@ -134,15 +147,14 @@ function getModelID(nasoroModel) {
 }
 
 /* ============================
-   MAIN ROUTE
+   MAIN ROUTE (Using /chat to match frontend)
 ============================ */
-// Apply Guardian AND SpamLimiter to the AI route
-app.post("/ai", guardian, spamLimiter, async (req, res) => {
+app.post("/chat", guardian, spamLimiter, async (req, res) => {
   const { message, images, model, customPersona } = req.body;
   const userId = req.headers["x-forwarded-for"]?.split(",")[0] || req.socket.remoteAddress;
   const session = getSession(userId);
 
-  // ---- Hourly Quota Check ----
+  // Hourly Quota
   if (Date.now() - session.lastReset > RESET_TIME) {
     session.requests = 0;
     session.lastReset = Date.now();
@@ -167,33 +179,22 @@ app.post("/ai", guardian, spamLimiter, async (req, res) => {
     let systemInstruction = baseSystem;
     let temperature = 0.6;
 
-    // --- SPECIALIST LOGIC ---
     if (model === "nasoro-3-chat") {
-      systemInstruction = `${baseSystem} MODE: UNFILTERED ROLEPLAY. 
-      Act like a human with feelings. Use *actions*. Never mention being an AI engine.`;
+      systemInstruction = `${baseSystem} MODE: UNFILTERED ROLEPLAY. Act human.`;
       temperature = 0.85;
-    } 
-    else if (model === "nasoro-3-coder") {
-      systemInstruction = `You are Nasoro Coder. 
-      1. Provide ONLY high-quality code.
-      2. Use modern syntax (ES6+, Python 3.10+, LuaU).
-      3. No yapping, just logic.`;
+    } else if (model === "nasoro-3-coder") {
+      systemInstruction = "You are Nasoro Coder. High-quality code only. No yapping.";
       temperature = 0.1; 
-    } 
-    else if (model === "nasoro-3-scientist") {
-      systemInstruction = `You are Nasoro Scientist (PhD).
-      1. Analyze facts deeply. 
-      2. If asking about 2025-2026, simulate a logical projection or state known data.
-      3. Use clear markdown headers.`;
+    } else if (model === "nasoro-3-scientist") {
+      systemInstruction = "You are Nasoro Scientist (PhD). Analyze facts deeply.";
       temperature = 0.3; 
-    } 
-    else if (model === "nasoro-3-image") {
-      systemInstruction = `You are Nasoro Image Engine.
-      Task: Convert request to a Stable Diffusion prompt.
-      Output ONLY this URL format:
-      ![Image](https://image.pollinations.ai/prompt/{PROMPT}?width=1024&height=1024&nologo=true&seed=${Math.floor(Math.random()*99999)})
-      Replace {PROMPT} with detailed English description (%20 for spaces).`;
-      temperature = 1.0;
+    } else if (model === "nasoro-3-image") {
+       // Using Pollinations AI for image generation via URL
+       systemInstruction = `You are Nasoro Image Engine.
+       Output ONLY this URL format:
+       ![Image](https://image.pollinations.ai/prompt/{PROMPT}?width=1024&height=1024&nologo=true&seed=${Math.floor(Math.random()*99999)})
+       Replace {PROMPT} with English description.`;
+       temperature = 1.0;
     }
 
     if (images?.length > 0) {
@@ -219,7 +220,7 @@ app.post("/ai", guardian, spamLimiter, async (req, res) => {
       messages.push({ role: "user", content: message });
     }
 
-    // --- GROQ API ---
+    // --- GROQ API CALL ---
     const groqResponse = await fetch("https://api.groq.com/openai/v1/chat/completions", {
       method: "POST",
       headers: {
@@ -238,9 +239,6 @@ app.post("/ai", guardian, spamLimiter, async (req, res) => {
     
     if(data.error) {
        console.error("Groq API Error:", data.error);
-       if(data.error.code === 'rate_limit_exceeded') {
-          return res.json({ reply: "⚠️ Server busy. Trying lighter model...", model_fallback: true });
-       }
        return res.status(500).json({ reply: "Engine Error: " + data.error.message });
     }
 
@@ -260,7 +258,7 @@ app.post("/ai", guardian, spamLimiter, async (req, res) => {
 });
 
 /* ============================
-   ADMIN TOOLS (Hidden)
+   ADMIN TOOLS
 ============================ */
 app.get("/admin/clear-bans", (req, res) => {
     if (req.query.key !== process.env.ADMIN_KEY) return res.status(401).send("Unauthorized");
@@ -272,4 +270,5 @@ app.get("/admin/clear-bans", (req, res) => {
 app.get("/", (req, res) => res.send("Nasoro 3 Neural Fortress is Active."));
 
 const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => console.log(`Nasoro 3 Server running on port ${PORT}.`));
+app.listen(PORT, () => console.log(`Nasoro 3 Server running on port ${PORT}`));
+           
