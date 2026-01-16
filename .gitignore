@@ -1,0 +1,5 @@
+node_modules
+.env
+data/
+access_logs.txt
+blacklist.txt
