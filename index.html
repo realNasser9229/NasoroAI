@@ -171,7 +171,7 @@
     <div class="flex-1 overflow-y-auto px-4 py-2 space-y-6">
       
       <div class="bg-zinc-900/50 p-3 rounded-lg border border-white/5">
-        <label class="text-[10px] uppercase text-zinc-500 font-bold mb-2 block">Your Persona</label>
+        <label class="text-[10px] uppercase text-zinc-500 font-bold mb-2 block">User Prompt</label>
         <input type="text" id="custom-persona" placeholder="e.g. 'Sarcastic Robot'" class="w-full bg-black/50 border border-white/10 rounded px-2 py-1 text-xs text-white focus:outline-none focus:border-blue-500">
       </div>
 
@@ -188,7 +188,7 @@
           </button>
           <button onclick="setModel('nasoro-3-pro')" id="btn-pro" class="model-btn w-full flex items-center gap-3 p-2 rounded-lg text-left">
             <div class="icon-box w-8 h-8 rounded-md bg-violet-500/10 text-violet-400 flex items-center justify-center"><i class="fa-solid fa-brain text-xs"></i></div>
-            <div><p class="font-semibold text-zinc-200 text-xs">Oro 3 Pro</p><p class="text-[10px] text-zinc-500">Deep logic.</p></div>
+            <div><p class="font-semibold text-zinc-200 text-xs">Oro 3 Pro</p><p class="text-[10px] text-zinc-500">Deep logic, best model.</p></div>
           </button>
         </div>
       </div>
@@ -198,26 +198,26 @@
         <div class="space-y-1">
           <button onclick="setModel('nasoro-3-chat')" id="btn-chat" class="model-btn w-full flex items-center gap-3 p-2 rounded-lg text-left">
             <div class="icon-box w-8 h-8 rounded-md bg-amber-500/10 text-amber-400 flex items-center justify-center"><i class="fa-solid fa-masks-theater text-xs"></i></div>
-            <div><p class="font-semibold text-zinc-200 text-xs">Oro 3 Chat</p><p class="text-[10px] text-zinc-500">Unfiltered Roleplay.</p></div>
+            <div><p class="font-semibold text-zinc-200 text-xs">Oro 3 Chat</p><p class="text-[10px] text-zinc-500">Roleplays, storytelling.</p></div>
           </button>
 
           <button onclick="setModel('nasoro-3-coder')" id="btn-coder" class="model-btn w-full flex items-center gap-3 p-2 rounded-lg text-left">
             <div class="icon-box w-8 h-8 rounded-md bg-emerald-500/10 text-emerald-400 flex items-center justify-center"><i class="fa-solid fa-code text-xs"></i></div>
-            <div><p class="font-semibold text-zinc-200 text-xs">Oro 3 Coder</p><p class="text-[10px] text-zinc-500">With Code Runner.</p></div>
+            <div><p class="font-semibold text-zinc-200 text-xs">Oro 3 Coder</p><p class="text-[10px] text-zinc-500">Ideal for programming, coding.</p></div>
           </button>
           <button onclick="setModel('nasoro-3-scientist')" id="btn-scientist" class="model-btn w-full flex items-center gap-3 p-2 rounded-lg text-left">
             <div class="icon-box w-8 h-8 rounded-md bg-teal-500/10 text-teal-400 flex items-center justify-center"><i class="fa-solid fa-flask text-xs"></i></div>
-            <div><p class="font-semibold text-zinc-200 text-xs">Oro 3 Scientist</p><p class="text-[10px] text-zinc-500">Research & Search.</p></div>
+            <div><p class="font-semibold text-zinc-200 text-xs">Oro 3 Scientist</p><p class="text-[10px] text-zinc-500">Research & search.</p></div>
           </button>
           <button onclick="setModel('nasoro-3-image')" id="btn-image" class="model-btn w-full flex items-center gap-3 p-2 rounded-lg text-left">
             <div class="icon-box w-8 h-8 rounded-md bg-pink-500/10 text-pink-400 flex items-center justify-center"><i class="fa-solid fa-paint-brush text-xs"></i></div>
-            <div><p class="font-semibold text-zinc-200 text-xs">Oro 3 Image</p><p class="text-[10px] text-zinc-500">Flux Art Engine.</p></div>
+            <div><p class="font-semibold text-zinc-200 text-xs">Oro 3 Image</p><p class="text-[10px] text-zinc-500">Flux artist, generative.</p></div>
           </button>
         </div>
       </div>
       
       <div>
-        <h3 class="text-[10px] uppercase tracking-widest text-zinc-600 font-bold mb-3 px-2">History</h3>
+        <h3 class="text-[10px] uppercase tracking-widest text-zinc-600 font-bold mb-3 px-2">Chat History</h3>
         <div id="history-list" class="space-y-1"></div>
       </div>
     </div>
@@ -226,7 +226,7 @@
   <main class="flex-1 flex flex-col relative h-full overflow-hidden z-10 bg-[#020202]">
     <header class="md:hidden h-14 flex items-center justify-between px-4 glass-header shrink-0 z-40">
       <button onclick="openSidebar()" class="text-zinc-400 hover:text-white"><i class="fa-solid fa-bars"></i></button>
-      <span class="font-bold text-sm tracking-widest uppercase">Nasoro 3</span>
+      <span class="font-bold text-sm tracking-widest uppercase">NASORO 3</span>
       <div class="w-2 h-2 bg-green-500 rounded-full shadow-[0_0_10px_rgba(34,197,94,0.5)]"></div>
     </header>
 
@@ -237,7 +237,7 @@
           <img src="https://i.postimg.cc/SRc9H0j8/Screenshot-2026-01-06-18-13-41-32-74158c69f0af68fbf38b28b8774cd491.jpg" class="relative w-24 h-24 md:w-32 md:h-32 rounded-[2rem] shadow-2xl border border-white/10 object-cover">
         </div>
         <h1 class="text-3xl md:text-5xl font-bold text-transparent bg-clip-text bg-gradient-to-b from-white to-zinc-500 mb-4 tracking-tight">How can I help?</h1>
-        <p class="text-zinc-500 text-sm md:text-base max-w-md">Intelligence refined. Now with code execution and other many features. Made by OpenOro™, powered by Groq™.</p>
+        <p class="text-zinc-500 text-sm md:text-base max-w-md">Intelligence refined, one of the fanciest AI frontend website. Made by OpenOro™, powered by Groq™.</p>
       </div>
     </div>
 
@@ -284,7 +284,7 @@
     const customPersonaInput = document.getElementById('custom-persona');
     
     let currentChatId = Date.now();
-    let currentModel = 'nasoro-2-fast';
+    let currentModel = 'nasoro-3-fast';
     let allChats = JSON.parse(localStorage.getItem('nasoro_ultra_archive') || '{}');
     let selectedImages = [];
     
@@ -309,11 +309,11 @@
 
     // --- NOTIFICATIONS ---
     const hotTakes = [
-      "Nasoro on the way to save you from psychological boredom! Wahoo!",
+      "Nasoro on the way to save you from digital boredom! Wahoo!",
       "Pro tip: The Scientist model thinks harder than I do.",
-      "Just checked the servers, they're chilly.",
-      "Are you coding? Oro Coder is waiting.",
-      "Did you know? I don't sleep. Ever."
+      "Just checked the servers, they're chilly af.",
+      "Struggling with scripts? Oro 3 Coder is waiting.",
+      "Did you know? I don't sleep. Ever, because you are important."
     ];
 
     function toggleNotifications() {
@@ -324,7 +324,7 @@
           setInterval(() => {
             if(document.visibilityState === 'visible') { 
                const randomTake = hotTakes[Math.floor(Math.random() * hotTakes.length)];
-               new Notification("Nasoro says:", { body: randomTake, icon: LOGO_URL });
+               new Notification("Nasoro Says:", { body: randomTake, icon: LOGO_URL });
             }
           }, 600000); 
         }
