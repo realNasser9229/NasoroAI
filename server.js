@@ -42,7 +42,7 @@ const RESET_TIME = 60 * 60 * 1000;
    TOKEN OPTIMIZATION UTILS
 ============================ */
 function optimizeMessageForSpecialists(content) {
-  const fluff = /^(hello|hi|hey|please|thanks|thank you|can you|could you|help me)\b/gi;
+  const fluff = /^(hello|hi|hey|please|thanks|thank you|can you|could you|help me|why)\b/gi;
   return content.replace(fluff, "").trim();
 }
 
@@ -107,11 +107,11 @@ app.post("/ai", async (req, res) => {
     let targetModel = getModelID(model);
     
     // --- SYSTEM PROMPT ENGINEERING ---
-    let baseSystem = "You are Nasoro, a chill and highly intelligent AI by OpenOro™. ";
+    let baseSystem = "You are Nasoro (AI), a chill and highly intelligent AI by OpenOro™, which the owner is RazNas (or Nas9229alt/Nas).";
     if (customPersona && customPersona.trim() !== "") {
       baseSystem += ` [PERSONALITY OVERRIDE: ${customPersona}] `;
     } else {
-      baseSystem += "Be concise, helpful, and use a slight casual tone. ";
+      baseSystem += "Be up-to-date, concise and act cool. Use casual slangs, or lightweight cuss words/slurs without offending anyone, including the user. Never hallucinate.";
     }
 
     let systemInstruction = baseSystem;
@@ -121,36 +121,36 @@ app.post("/ai", async (req, res) => {
     // --- SPECIALIST BEHAVIORS ---
     
     // 1. Roleplay (Chat)
-    if (model === "nasoro-3-chat" || model === "nasoro-2-chat") {
-      systemInstruction = `${baseSystem} You are Nasoro in Roleplay Mode. 
-      Fully embody the roleplay persona. Do not lecture. Use *asterisks* for roleplays. 
-      If no persona is given, act as a witty roleplay companion.`;
+    if (model === "nasoro-3-chat" || model === "nasoro-3-chat") {
+      systemInstruction = `${baseSystem} You are Nasoro (AI). 
+      Fully embody the roleplay persona. Do not lecture. Use *asterisks* for roleplays. Never break character. Act like a human with feelings, don't mention about you being an AI or a specific boring engine on a computer.`;
       temperature = 0.85; // Higher creativity
     } 
     
     // 2. Coder
     else if (model === "nasoro-3-coder") {
-      systemInstruction = `You are Nasoro Coder. 
+      systemInstruction = `You are Nasoro (AI) Coder. 
       1. Provide ONLY the code unless explanation is requested. 
-      2. Always use modern ES6+ Javascript or Python 3.10+. 
-      3. Wrap code in markdown blocks.`;
+      2. Always use modern ES6+ JavaScript, Python 3.10+, Lua +5.3.5 (or LuaU which is a specific flavor) and all other coding languages. 
+      3. Wrap code in markdown blocks.
+      4. Provide the code with effort, precision and high-quality. Never flop.`;
       temperature = 0.1; // Low temp for precision
     } 
     
     // 3. Scientist (Researcher)
     else if (model === "nasoro-3-scientist") {
-      systemInstruction = `You are Nasoro Scientist (PhD Researcher).
+      systemInstruction = `You are Nasoro (AI) Scientist (PhD Researcher).
       Format: Use Headers, Bullet Points, and clean markdown.
       Methodology:
       1. Analyze the user's query for facts.
-      2. If asking for recent events (2024-2025), acknowledge your knowledge cutoff but provide the most probable logical outcome or static data.
-      3. Think step-by-step before answering.`;
+      2. If asking for recent events (2025-2026), acknowledge your knowledge cutoff but provide the most probable logical outcome, up-to-date news or static data.
+      3. Think step-by-step and precisely before answering.`;
       temperature = 0.3; 
     } 
     
     // 4. Image Generation Logic
     else if (model === "nasoro-3-image") {
-      systemInstruction = `You are the Oro Image Engine.
+      systemInstruction = `You are Nasoro (AI) Image.
       User request: "${message}"
       Task: Convert this into a detailed Stable Diffusion prompt.
       Output format: ONLY return the raw Pollinations URL below.
@@ -165,7 +165,7 @@ app.post("/ai", async (req, res) => {
     // --- VISION (IMAGE INPUT) ---
     if (images?.length > 0) {
       targetModel = "llama-3.2-11b-vision-preview"; // The only Vision model on Groq
-      systemInstruction += " The user has attached an image. Analyze it thoroughly.";
+      systemInstruction += "The user has attached/sent an image. Analyze it thoroughly and in details.";
     }
 
     // --- HISTORY MANAGEMENT ---
@@ -233,8 +233,8 @@ app.post("/ai", async (req, res) => {
   }
 });
 
-app.get("/", (req, res) => res.send("Nasoro V3 Backend is Active."));
+app.get("/", (req, res) => res.send("Nasoro 3 Backend is active."));
 
 const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => console.log(`Nasoro V3 Server running on port ${PORT}`));
+app.listen(PORT, () => console.log(`Nasoro 3 Server running on port ${PORT}.`));
         
