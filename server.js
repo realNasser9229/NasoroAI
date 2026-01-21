@@ -168,7 +168,7 @@ app.post("/chat", guardian, spamLimiter, async (req, res) => {
     let targetModel = getModelID(model);
     
     // --- PROMPT ENGINEERING ---
-    let baseSystem = "You are Nasoro (AI), a chill and highly intelligent AI by OpenOro™, created by RazNas. ";
+    let baseSystem = "You are Nasoro (AI), a chill and highly intelligent AI by OpenOro™, created by RazNas. Be professional.";
     
     if (customPersona && customPersona.trim() !== "") {
       baseSystem += ` [PERSONALITY OVERRIDE: ${customPersona}] `;
