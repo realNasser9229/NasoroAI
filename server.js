@@ -11,7 +11,7 @@ import hpp from "hpp";
 dotenv.config();
 
 // --- PERSISTENCE CONFIG (Render-friendly) ---
-const DATA_DIR = process.env.DATA_DIR || "./data";
+const DATA_DIR = process.env.RAILWAY_VOLUME_MOUNT_PATH || "./data";
 
 // Create the folder if it doesn't exist
 if (!fs.existsSync(DATA_DIR)) {
@@ -137,7 +137,7 @@ function getModelID(nasoroModel) {
 /* ============================
    MAIN ROUTE
 ============================ */
-const RENDER_API = "https://YOUR_RENDER_URL.onrender.com"; // <- replace with your Render URL
+const PRODUCTION_API = "https://YOUR_RENDER_URL.onrender.com"; // <-- updated from Railway
 
 app.post("/chat", guardian, spamLimiter, async (req, res) => {
   const { message, images, model, customPersona } = req.body;
@@ -206,8 +206,8 @@ app.post("/chat", guardian, spamLimiter, async (req, res) => {
       messages.push({ role: "user", content: message });
     }
 
-    // --- GROQ / Render API CALL ---
-    const groqResponse = await fetch(`${RENDER_API}/api`, {
+    // --- Updated PRODUCTION API call ---
+    const groqResponse = await fetch(`${PRODUCTION_API}/api`, {
       method: "POST",
       headers: {
         "Authorization": `Bearer ${GROQ_KEY}`,
