@@ -137,7 +137,7 @@ function getModelID(nasoroModel) {
 /* ============================
    MAIN ROUTE
 ============================ */
-const PRODUCTION_API = "https://YOUR_RENDER_URL.onrender.com"; // <-- updated from Railway
+const PRODUCTION_API = "https://nasoronew.onrender.com"; // <-- updated from Railway
 
 app.post("/chat", guardian, spamLimiter, async (req, res) => {
   const { message, images, model, customPersona } = req.body;
