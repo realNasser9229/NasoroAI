@@ -10,37 +10,20 @@ import hpp from "hpp";
 
 dotenv.config();
 
-// --- PERSISTENCE CONFIG (Render-friendly) ---
+// --- PERSISTENCE CONFIG ---
 const DATA_DIR = process.env.RAILWAY_VOLUME_MOUNT_PATH || "./data";
 
-// Create the folder if it doesn't exist
+// Create folder if it doesn't exist
 if (!fs.existsSync(DATA_DIR)) {
     try {
         fs.mkdirSync(DATA_DIR, { recursive: true });
         console.log(`📁 Created data directory at: ${DATA_DIR}`);
     } catch (err) {
-        console.error("⚠️ Could not create data dir (might exist):", err);
+        console.error("⚠️ Could not create data dir:", err);
     }
 }
 
-const BLACKLIST_FILE = path.join(DATA_DIR, "blacklist.txt");
-const ACCESS_LOG = path.join(DATA_DIR, "access_logs.txt");
-
-// Load Banned IPs into memory
-let BANNED_IPS = new Set();
-if (fs.existsSync(BLACKLIST_FILE)) {
-    const fileContent = fs.readFileSync(BLACKLIST_FILE, "utf-8");
-    BANNED_IPS = new Set(fileContent.split("\n").filter(line => line.trim() !== ""));
-    console.log(`🛡️ Guardian loaded ${BANNED_IPS.size} banned IPs from ${BLACKLIST_FILE}`);
-} else {
-    fs.writeFileSync(BLACKLIST_FILE, ""); 
-}
-
 const app = express();
-
-/* ============================
-   LEVEL 1: GLOBAL ARMOR
-============================ */
 app.use(helmet()); 
 app.use(hpp()); 
 app.use(cors()); 
@@ -48,64 +31,16 @@ app.use(express.json({ limit: "50mb" }));
 
 const GROQ_KEY = process.env.OPENAI_API_KEY; 
 
-// Track traffic for DDoS detection
-const userTraffic = new Map();
-
-/* ============================
-   LEVEL 2: THE GUARDIAN (Middleware)
-============================ */
-const guardian = (req, res, next) => {
-    const ip = req.headers["x-forwarded-for"]?.split(",")[0] || req.headers["x-user-id"] || req.socket.remoteAddress;
-    const now = Date.now();
-
-    if (BANNED_IPS.has(ip)) {
-        return res.status(403).json({ reply: "🚫 [SECURITY] Your IP is permanently banned from Nasoro Network." });
-    }
-
-    const logEntry = `[${new Date().toISOString()}] ${ip} | ${req.method} ${req.url}\n`;
-    fs.appendFile(ACCESS_LOG, logEntry, (err) => { if(err) console.error(err); });
-
-    const payloadStr = JSON.stringify(req.body);
-    const dangerPatterns = /(<script|DROP TABLE|UNION SELECT|process\.env|eval\(|document\.cookie)/gi;
-    if (dangerPatterns.test(payloadStr)) {
-        return banUser(ip, "Malicious Payload Injection", res);
-    }
-
-    if (!userTraffic.has(ip)) userTraffic.set(ip, []);
-    const history = userTraffic.get(ip);
-    history.push(now);
-    const recent = history.filter(ts => now - ts < 10000); 
-    userTraffic.set(ip, recent);
-    if (recent.length > 20) {
-        return banUser(ip, "DDoS / Rapid Request Spam", res);
-    }
-
-    next();
-};
-
-function banUser(ip, reason, res) {
-    if (!BANNED_IPS.has(ip)) {
-        BANNED_IPS.add(ip);
-        fs.appendFileSync(BLACKLIST_FILE, ip + "\n");
-        console.log(`🔥 [AUTO-BAN] IP: ${ip} | Reason: ${reason}`);
-    }
-    return res.status(403).json({ reply: `🚨 SECURITY ALERT: ${reason}. You have been blacklisted.` });
-}
-
-/* ============================
-   LEVEL 3: RATE LIMITER
-============================ */
+// RATE LIMITER
 const spamLimiter = rateLimit({
-    windowMs: 1 * 60 * 1000, 
-    max: 20, 
-    message: { reply: "🧊 **Chill out.** You're typing too fast. Wait a minute." },
+    windowMs: 1 * 60 * 1000,
+    max: 20,
+    message: { reply: "🧊 Chill out. Wait a minute." },
     standardHeaders: true,
     legacyHeaders: false,
 });
 
-/* ============================
-   USER SESSIONS
-============================ */
+// USER SESSIONS
 const userSessions = new Map();
 
 function getSession(userId) {
@@ -118,9 +53,7 @@ function getSession(userId) {
 const MAX_REQUESTS_PER_HOUR = 200; 
 const RESET_TIME = 60 * 60 * 1000;
 
-/* ============================
-   MODEL MAPPING
-============================ */
+// MODEL MAPPING
 function getModelID(nasoroModel) {
   switch (nasoroModel) {
     case "nasoro-3-fast":      return "llama-3.1-8b-instant";
@@ -134,12 +67,8 @@ function getModelID(nasoroModel) {
   }
 }
 
-/* ============================
-   MAIN ROUTE
-============================ */
-const PRODUCTION_API = "https://nasoronew-onrender.com"; // <-- updated Render URL
-
-app.post("/chat", guardian, spamLimiter, async (req, res) => {
+// MAIN CHAT ROUTE
+app.post("/chat", spamLimiter, async (req, res) => {
   const { message, images, model, customPersona } = req.body;
   const userId = req.headers["x-forwarded-for"]?.split(",")[0] || req.socket.remoteAddress;
   const session = getSession(userId);
@@ -206,7 +135,7 @@ app.post("/chat", guardian, spamLimiter, async (req, res) => {
       messages.push({ role: "user", content: message });
     }
 
-    const groqResponse = await fetch(`${PRODUCTION_API}/api`, {
+    const groqResponse = await fetch("https://api.groq.com/openai/v1/chat/completions", {
       method: "POST",
       headers: {
         "Authorization": `Bearer ${GROQ_KEY}`,
@@ -242,18 +171,8 @@ app.post("/chat", guardian, spamLimiter, async (req, res) => {
   }
 });
 
-/* ============================
-   ADMIN TOOLS
-============================ */
-app.get("/admin/clear-bans", (req, res) => {
-    if (req.query.key !== process.env.ADMIN_KEY) return res.status(401).send("Unauthorized");
-    fs.writeFileSync(BLACKLIST_FILE, "");
-    BANNED_IPS.clear();
-    res.send("✅ Blacklist purged.");
-});
-
 app.get("/", (req, res) => res.send("Nasoro 3 Neural Fortress is Active."));
 
 const PORT = process.env.PORT || 3000;
-const HOST = "0.0.0.0"; // needed for Render
+const HOST = "0.0.0.0";
 app.listen(PORT, HOST, () => console.log(`Nasoro 3 Server running on ${HOST}:${PORT}`));
