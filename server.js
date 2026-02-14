@@ -10,11 +10,10 @@ import hpp from "hpp";
 
 dotenv.config();
 
-// --- PERSISTENCE CONFIG (The "Memory" on Railway) ---
-// This connects to the Volume you just mounted at /data
-const DATA_DIR = process.env.RAILWAY_VOLUME_MOUNT_PATH || "./data";
+// --- PERSISTENCE CONFIG (Render-friendly) ---
+const DATA_DIR = process.env.DATA_DIR || "./data";
 
-// Create the folder if it doesn't exist (local testing)
+// Create the folder if it doesn't exist
 if (!fs.existsSync(DATA_DIR)) {
     try {
         fs.mkdirSync(DATA_DIR, { recursive: true });
@@ -34,7 +33,6 @@ if (fs.existsSync(BLACKLIST_FILE)) {
     BANNED_IPS = new Set(fileContent.split("\n").filter(line => line.trim() !== ""));
     console.log(`🛡️ Guardian loaded ${BANNED_IPS.size} banned IPs from ${BLACKLIST_FILE}`);
 } else {
-    // Create the file if it doesn't exist
     fs.writeFileSync(BLACKLIST_FILE, ""); 
 }
 
@@ -57,36 +55,27 @@ const userTraffic = new Map();
    LEVEL 2: THE GUARDIAN (Middleware)
 ============================ */
 const guardian = (req, res, next) => {
-    // Get Real IP on Railway
     const ip = req.headers["x-forwarded-for"]?.split(",")[0] || req.headers["x-user-id"] || req.socket.remoteAddress;
     const now = Date.now();
 
-    // 1. Check Permanent Blacklist
     if (BANNED_IPS.has(ip)) {
         return res.status(403).json({ reply: "🚫 [SECURITY] Your IP is permanently banned from Nasoro Network." });
     }
 
-    // 2. Log Access (Async to not slow down)
     const logEntry = `[${new Date().toISOString()}] ${ip} | ${req.method} ${req.url}\n`;
     fs.appendFile(ACCESS_LOG, logEntry, (err) => { if(err) console.error(err); });
 
-    // 3. Payload Scrubber (Anti-Injection)
     const payloadStr = JSON.stringify(req.body);
     const dangerPatterns = /(<script|DROP TABLE|UNION SELECT|process\.env|eval\(|document\.cookie)/gi;
     if (dangerPatterns.test(payloadStr)) {
         return banUser(ip, "Malicious Payload Injection", res);
     }
 
-    // 4. DDoS / Burst Detection
     if (!userTraffic.has(ip)) userTraffic.set(ip, []);
     const history = userTraffic.get(ip);
     history.push(now);
-
-    // Keep only timestamps from last 10 seconds
     const recent = history.filter(ts => now - ts < 10000); 
     userTraffic.set(ip, recent);
-
-    // RULE: If > 20 requests in 10 seconds => INSTANT BAN
     if (recent.length > 20) {
         return banUser(ip, "DDoS / Rapid Request Spam", res);
     }
@@ -97,7 +86,6 @@ const guardian = (req, res, next) => {
 function banUser(ip, reason, res) {
     if (!BANNED_IPS.has(ip)) {
         BANNED_IPS.add(ip);
-        // Write to the VOLUME so it persists forever
         fs.appendFileSync(BLACKLIST_FILE, ip + "\n");
         console.log(`🔥 [AUTO-BAN] IP: ${ip} | Reason: ${reason}`);
     }
@@ -108,7 +96,7 @@ function banUser(ip, reason, res) {
    LEVEL 3: RATE LIMITER
 ============================ */
 const spamLimiter = rateLimit({
-    windowMs: 1 * 60 * 1000, // 1 minute
+    windowMs: 1 * 60 * 1000, 
     max: 20, 
     message: { reply: "🧊 **Chill out.** You're typing too fast. Wait a minute." },
     standardHeaders: true,
@@ -147,14 +135,15 @@ function getModelID(nasoroModel) {
 }
 
 /* ============================
-   MAIN ROUTE (Using /chat to match frontend)
+   MAIN ROUTE
 ============================ */
+const RENDER_API = "https://YOUR_RENDER_URL.onrender.com"; // <- replace with your Render URL
+
 app.post("/chat", guardian, spamLimiter, async (req, res) => {
   const { message, images, model, customPersona } = req.body;
   const userId = req.headers["x-forwarded-for"]?.split(",")[0] || req.socket.remoteAddress;
   const session = getSession(userId);
 
-  // Hourly Quota
   if (Date.now() - session.lastReset > RESET_TIME) {
     session.requests = 0;
     session.lastReset = Date.now();
@@ -167,7 +156,6 @@ app.post("/chat", guardian, spamLimiter, async (req, res) => {
   try {
     let targetModel = getModelID(model);
     
-    // --- PROMPT ENGINEERING ---
     let baseSystem = "You are Nasoro (AI), a chill and highly intelligent AI by OpenOro™, created by RazNas. Be professional.";
     
     if (customPersona && customPersona.trim() !== "") {
@@ -189,7 +177,6 @@ app.post("/chat", guardian, spamLimiter, async (req, res) => {
       systemInstruction = "You are Nasoro Scientist (PhD). Analyze facts deeply.";
       temperature = 0.3; 
     } else if (model === "nasoro-3-image") {
-       // Using Pollinations AI for image generation via URL
        systemInstruction = `You are Nasoro Image Engine.
        Output ONLY this URL format:
        ![Image](https://image.pollinations.ai/prompt/{PROMPT}?width=1024&height=1024&nologo=true&seed=${Math.floor(Math.random()*99999)})
@@ -202,7 +189,6 @@ app.post("/chat", guardian, spamLimiter, async (req, res) => {
       systemInstruction += " Analyze the attached image thoroughly.";
     }
 
-    // --- HISTORY ---
     let historyLimit = 20;
     if (model === "nasoro-3-pro") historyLimit = 10;
     
@@ -220,8 +206,8 @@ app.post("/chat", guardian, spamLimiter, async (req, res) => {
       messages.push({ role: "user", content: message });
     }
 
-    // --- GROQ API CALL ---
-    const groqResponse = await fetch("https://api.groq.com/openai/v1/chat/completions", {
+    // --- GROQ / Render API CALL ---
+    const groqResponse = await fetch(`${RENDER_API}/api`, {
       method: "POST",
       headers: {
         "Authorization": `Bearer ${GROQ_KEY}`,
@@ -270,5 +256,5 @@ app.get("/admin/clear-bans", (req, res) => {
 app.get("/", (req, res) => res.send("Nasoro 3 Neural Fortress is Active."));
 
 const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => console.log(`Nasoro 3 Server running on port ${PORT}`));
-           
+const HOST = "0.0.0.0"; // needed for Render
+app.listen(PORT, HOST, () => console.log(`Nasoro 3 Server running on ${HOST}:${PORT}`));
