@@ -137,7 +137,7 @@ function getModelID(nasoroModel) {
 /* ============================
    MAIN ROUTE
 ============================ */
-const PRODUCTION_API = "https://nasoronew.onrender.com"; // <-- updated from Railway
+const PRODUCTION_API = "https://nasoronew-onrender.com"; // <-- updated Render URL
 
 app.post("/chat", guardian, spamLimiter, async (req, res) => {
   const { message, images, model, customPersona } = req.body;
@@ -206,7 +206,6 @@ app.post("/chat", guardian, spamLimiter, async (req, res) => {
       messages.push({ role: "user", content: message });
     }
 
-    // --- Updated PRODUCTION API call ---
     const groqResponse = await fetch(`${PRODUCTION_API}/api`, {
       method: "POST",
       headers: {
