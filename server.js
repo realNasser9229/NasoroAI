@@ -1,28 +1,59 @@
 import express from "express";
 import cors from "cors";
 import dotenv from "dotenv";
-import fetch from "node-fetch";
+import fetch from "node-fetch"; 
+import fs from "fs";
+import path from "path";
+import helmet from "helmet";
+import rateLimit from "express-rate-limit";
+import hpp from "hpp";
 
 dotenv.config();
 
-const app = express();
-app.use(cors());
-app.use(express.json({ limit: "50mb" }));
+// --- PERSISTENCE CONFIG ---
+const DATA_DIR = process.env.RAILWAY_VOLUME_MOUNT_PATH || "./data";
 
-const GROQ_KEY = process.env.OPENAI_API_KEY;
-if (!GROQ_KEY) console.warn("⚠️ OPENAI_API_KEY not set!");
-
-const userSessions = new Map();
-const MAX_REQUESTS_PER_HOUR = 200;
-const RESET_TIME = 60 * 60 * 1000;
-
-function getSession(userId) {
-  if (!userSessions.has(userId)) {
-    userSessions.set(userId, { history: [], requests: 0, lastReset: Date.now() });
-  }
-  return userSessions.get(userId);
+// Create folder if it doesn't exist
+if (!fs.existsSync(DATA_DIR)) {
+    try {
+        fs.mkdirSync(DATA_DIR, { recursive: true });
+        console.log(`📁 Created data directory at: ${DATA_DIR}`);
+    } catch (err) {
+        console.error("⚠️ Could not create data dir:", err);
+    }
 }
 
+const app = express();
+app.use(helmet()); 
+app.use(hpp()); 
+app.use(cors()); 
+app.use(express.json({ limit: "50mb" })); 
+
+const GROQ_KEY = process.env.OPENAI_API_KEY; 
+
+// RATE LIMITER
+const spamLimiter = rateLimit({
+    windowMs: 1 * 60 * 1000,
+    max: 20,
+    message: { reply: "🧊 Chill out. Wait a minute." },
+    standardHeaders: true,
+    legacyHeaders: false,
+});
+
+// USER SESSIONS
+const userSessions = new Map();
+
+function getSession(userId) {
+    if (!userSessions.has(userId)) {
+        userSessions.set(userId, { history: [], requests: 0, lastReset: Date.now() });
+    }
+    return userSessions.get(userId);
+}
+
+const MAX_REQUESTS_PER_HOUR = 200; 
+const RESET_TIME = 60 * 60 * 1000;
+
+// MODEL MAPPING
 function getModelID(nasoroModel) {
   switch (nasoroModel) {
     case "nasoro-3-fast":      return "llama-3.1-8b-instant";
@@ -32,15 +63,16 @@ function getModelID(nasoroModel) {
     case "nasoro-3-coder":     return "llama-3.3-70b-versatile"; 
     case "nasoro-3-scientist": return "llama-3.1-70b-versatile"; 
     case "nasoro-3-image":     return "llama-3.1-8b-instant";
-    default: return "llama-3.1-8b-instant";
+    default:                   return "llama-3.1-8b-instant"; 
   }
 }
 
-app.post("/chat", async (req, res) => {
+// MAIN CHAT ROUTE
+app.post("/chat", spamLimiter, async (req, res) => {
   const { message, images, model, customPersona } = req.body;
   const userId = req.headers["x-forwarded-for"]?.split(",")[0] || req.socket.remoteAddress;
-  
   const session = getSession(userId);
+
   if (Date.now() - session.lastReset > RESET_TIME) {
     session.requests = 0;
     session.lastReset = Date.now();
@@ -52,24 +84,58 @@ app.post("/chat", async (req, res) => {
 
   try {
     let targetModel = getModelID(model);
-    let baseSystem = "You are Nasoro (AI), a chill and highly intelligent AI.";
+    
+    let baseSystem = "You are Nasoro (AI), a chill and highly intelligent AI by OpenOro™, created by RazNas. Be professional.";
+    
+    if (customPersona && customPersona.trim() !== "") {
+      baseSystem += ` [PERSONALITY OVERRIDE: ${customPersona}] `;
+    } else {
+      baseSystem += "Be up-to-date, concise and act cool. Use casual slang. Never hallucinate. ";
+    }
 
-    if (customPersona?.trim()) baseSystem += ` [PERSONALITY OVERRIDE: ${customPersona}]`;
-    else baseSystem += " Be concise and act cool.";
-
+    let systemInstruction = baseSystem;
     let temperature = 0.6;
-    if (model === "nasoro-3-chat") temperature = 0.85;
-    if (model === "nasoro-3-coder") temperature = 0.1;
-    if (model === "nasoro-3-scientist") temperature = 0.3;
-    if (model === "nasoro-3-image") temperature = 1.0;
 
+    if (model === "nasoro-3-chat") {
+      systemInstruction = `${baseSystem} MODE: UNFILTERED ROLEPLAY. Act human.`;
+      temperature = 0.85;
+    } else if (model === "nasoro-3-coder") {
+      systemInstruction = "You are Nasoro Coder. High-quality code only. No yapping.";
+      temperature = 0.1; 
+    } else if (model === "nasoro-3-scientist") {
+      systemInstruction = "You are Nasoro Scientist (PhD). Analyze facts deeply.";
+      temperature = 0.3; 
+    } else if (model === "nasoro-3-image") {
+       systemInstruction = `You are Nasoro Image Engine.
+       Output ONLY this URL format:
+       ![Image](https://image.pollinations.ai/prompt/{PROMPT}?width=1024&height=1024&nologo=true&seed=${Math.floor(Math.random()*99999)})
+       Replace {PROMPT} with English description.`;
+       temperature = 1.0;
+    }
+
+    if (images?.length > 0) {
+      targetModel = "llama-3.2-11b-vision-preview"; 
+      systemInstruction += " Analyze the attached image thoroughly.";
+    }
+
+    let historyLimit = 20;
+    if (model === "nasoro-3-pro") historyLimit = 10;
+    
     const messages = [
-      { role: "system", content: baseSystem },
-      ...session.history.slice(-20),
-      { role: "user", content: message }
+      { role: "system", content: systemInstruction },
+      ...session.history.slice(-historyLimit)
     ];
 
-    const apiRes = await fetch("https://api.groq.com/openai/v1/chat/completions", {
+    if (images?.length > 0) {
+      const contentArray = [];
+      if (message) contentArray.push({ type: "text", text: message });
+      images.forEach(img => contentArray.push({ type: "image_url", image_url: { url: img } }));
+      messages.push({ role: "user", content: contentArray });
+    } else {
+      messages.push({ role: "user", content: message });
+    }
+
+    const groqResponse = await fetch("https://api.groq.com/openai/v1/chat/completions", {
       method: "POST",
       headers: {
         "Authorization": `Bearer ${GROQ_KEY}`,
@@ -77,28 +143,36 @@ app.post("/chat", async (req, res) => {
       },
       body: JSON.stringify({
         model: targetModel,
-        messages, 
+        messages,
         max_tokens: 2048,
-        temperature
+        temperature: temperature
       })
     });
 
-    const data = await apiRes.json();
-    if (data.error) return res.status(500).json({ reply: "Engine Error: " + data.error.message });
+    const data = await groqResponse.json();
+    
+    if(data.error) {
+       console.error("Groq API Error:", data.error);
+       return res.status(500).json({ reply: "Engine Error: " + data.error.message });
+    }
 
     const aiReply = data.choices?.[0]?.message?.content || "No reply generated.";
-    session.history.push({ role: "user", content: message });
-    session.history.push({ role: "assistant", content: aiReply });
+
+    if(images.length === 0) {
+        session.history.push({ role: "user", content: message });
+        session.history.push({ role: "assistant", content: aiReply });
+    }
 
     res.json({ reply: aiReply });
 
   } catch (err) {
     console.error("FATAL ERROR:", err);
-    res.status(500).json({ reply: "Connection failed. Try again later." });
+    res.status(500).json({ reply: "Connection failed. Backend needs restart." });
   }
 });
 
-app.get("/", (req, res) => res.send("Nasoro AI Active!"));
+app.get("/", (req, res) => res.send("Nasoro 3 Neural Fortress is Active."));
 
 const PORT = process.env.PORT || 3000;
-app.listen(PORT, "0.0.0.0", () => console.log(`Server live on ${PORT}`));
+const HOST = "0.0.0.0";
+app.listen(PORT, HOST, () => console.log(`Nasoro 3 Server running on ${HOST}:${PORT}`));
